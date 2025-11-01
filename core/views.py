@@ -1407,7 +1407,20 @@ def adicionar_titulo_pg_devedor(request, devedor_id):
         empresa = get_object_or_404(Empresa, id=empresa_id)
 
         # Tipo doc
-        tipo_doc = get_object_or_404(TipoDocTitulo, id=(d.get('tipo_doc_id') or '').strip())
+        tipo_doc_id_str = (d.get('tipo_doc_id') or '').strip()
+        if not tipo_doc_id_str:
+            messages.error(request, 'Selecione o tipo de documento.')
+            return render(request, 'titulos_adicionar_pg_devedor.html', {
+                'devedor': devedor, 'tipos_docs': tipos_docs, 'empresa_selecionada': empresa_selecionada
+            })
+        
+        try:
+            tipo_doc = get_object_or_404(TipoDocTitulo, id=int(tipo_doc_id_str))
+        except (ValueError, TypeError):
+            messages.error(request, 'Tipo de documento inválido.')
+            return render(request, 'titulos_adicionar_pg_devedor.html', {
+                'devedor': devedor, 'tipos_docs': tipos_docs, 'empresa_selecionada': empresa_selecionada
+            })
 
         # Campos
         num_titulo = (d.get('num_titulo') or '').strip()
