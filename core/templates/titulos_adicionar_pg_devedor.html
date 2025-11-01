@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h1 class="text-center mb-4">Adicionar Título para {{ devedor.nome }}</h1>
+    <h1 class="text-center mb-4">Adicionar Título para {{ devedor.nome|default:"Devedor" }}</h1>
     <form method="POST" class="row g-3">
         {% csrf_token %}
 		
@@ -62,7 +62,7 @@
 			<label for="empresa_id" class="form-label">Empresa</label>
 			{% if empresa_selecionada %}
 			<input type="hidden" name="empresa_id" id="empresa_id" class="form-control" value="{{ empresa_selecionada.id }}" readonly required>
-			<input type="text" name="empresa" id="empresa" class="form-control" value="{{ empresa_selecionada.razao_social }}" readonly required>
+			<input type="text" name="empresa" id="empresa" class="form-control" value="{{ empresa_selecionada.razao_social|default:empresa_selecionada.nome_fantasia|default:'' }}" readonly required>
 			{% else %}
 			<div class="alert alert-warning">Nenhuma empresa selecionada. Por favor, selecione uma empresa na sessão.</div>
 			{% endif %}

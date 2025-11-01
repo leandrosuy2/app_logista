@@ -1388,11 +1388,39 @@ from django.urls import reverse
 
 @lojista_login_required
 def adicionar_titulo_pg_devedor(request, devedor_id):
-    devedor = get_object_or_404(Devedor, id=devedor_id)
-
-    empresa_id_sessao = request.session.get('empresa_id_sessao')
-    empresa_selecionada = Empresa.objects.filter(id=empresa_id_sessao).first() if empresa_id_sessao else None
-    tipos_docs = TipoDocTitulo.objects.all()
+    # Inicializar variáveis
+    devedor = None
+    empresa_selecionada = None
+    tipos_docs = []
+    
+    try:
+        empresa_id_sessao = request.session.get('empresa_id_sessao')
+        if not empresa_id_sessao:
+            messages.error(request, 'Empresa não selecionada na sessão.')
+            return redirect('login')
+        
+        devedor = get_object_or_404(Devedor, id=devedor_id)
+        
+        # Verifica se o devedor pertence à empresa da sessão
+        if devedor.empresa_id != empresa_id_sessao:
+            messages.error(request, 'Você não tem permissão para adicionar título para este devedor.')
+            return redirect('listar_devedores')
+        
+        empresa_selecionada = Empresa.objects.filter(id=empresa_id_sessao).first()
+        if not empresa_selecionada:
+            messages.error(request, 'Empresa não encontrada.')
+            return redirect('login')
+        
+        tipos_docs = TipoDocTitulo.objects.all()
+    except Http404:
+        messages.error(request, 'Devedor não encontrado.')
+        return redirect('listar_devedores')
+    except Exception as e:
+        logger.error(f"Erro ao carregar página de adicionar título: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        messages.error(request, 'Erro ao carregar página.')
+        return redirect('listar_devedores')
 
     if request.method == 'POST':
         d = request.POST
@@ -1423,14 +1451,23 @@ def adicionar_titulo_pg_devedor(request, devedor_id):
             })
 
         # Campos
-        num_titulo = (d.get('num_titulo') or '').strip()
+        num_titulo_str = (d.get('num_titulo') or '').strip()
         data_emissao = (d.get('data_emissao') or '').strip()
         data_venc = (d.get('data_vencimento') or '').strip()
         valor_str = (d.get('valor') or '').strip()
         status_str = (d.get('status_baixa') or '0').strip()
 
-        if not (num_titulo and data_emissao and data_venc and valor_str):
+        if not (num_titulo_str and data_emissao and data_venc and valor_str):
             messages.error(request, 'Preencha número, emissão, vencimento e valor.')
+            return render(request, 'titulos_adicionar_pg_devedor.html', {
+                'devedor': devedor, 'tipos_docs': tipos_docs, 'empresa_selecionada': empresa_selecionada
+            })
+        
+        # Validar e converter num_titulo para inteiro
+        try:
+            num_titulo = int(num_titulo_str)
+        except ValueError:
+            messages.error(request, 'Número do título deve ser um valor numérico válido.')
             return render(request, 'titulos_adicionar_pg_devedor.html', {
                 'devedor': devedor, 'tipos_docs': tipos_docs, 'empresa_selecionada': empresa_selecionada
             })
@@ -1445,10 +1482,11 @@ def adicionar_titulo_pg_devedor(request, devedor_id):
                 'devedor': devedor, 'tipos_docs': tipos_docs, 'empresa_selecionada': empresa_selecionada
             })
 
-        # Valor
+        # Valor - converter para float (o modelo usa FloatField)
         try:
-            valor = Decimal(valor_str.replace('.', '').replace(',', '.'))
-        except (InvalidOperation, AttributeError):
+            valor_decimal = Decimal(valor_str.replace('.', '').replace(',', '.'))
+            valor = float(valor_decimal)
+        except (InvalidOperation, AttributeError, ValueError):
             messages.error(request, 'Valor inválido. Use 1.234,56.')
             return render(request, 'titulos_adicionar_pg_devedor.html', {
                 'devedor': devedor, 'tipos_docs': tipos_docs, 'empresa_selecionada': empresa_selecionada
@@ -1460,27 +1498,47 @@ def adicionar_titulo_pg_devedor(request, devedor_id):
             status_baixa = 0
 
         # CREATE — sem statusBaixaGeral
-        Titulo.objects.create(
-            empresa=empresa,
-            devedor=devedor,
-            num_titulo=num_titulo,
-            valor=valor,
-            dataVencimento=data_venc,
-            dataEmissao=data_emissao,
-            tipo_doc=tipo_doc,
-            statusBaixa=status_baixa,
-            idTituloRef=None,
-        )
+        try:
+            Titulo.objects.create(
+                empresa=empresa,
+                devedor=devedor,
+                num_titulo=num_titulo,
+                valor=valor,
+                dataVencimento=data_venc,
+                dataEmissao=data_emissao,
+                tipo_doc=tipo_doc,
+                statusBaixa=status_baixa,
+                idTituloRef=None,
+            )
+            messages.success(request, 'Título adicionado com sucesso.')
+            next_url = request.GET.get('next') or reverse('listar_titulos_por_devedor', args=[devedor.id])
+            return redirect(next_url)
+        except Exception as e:
+            logger.error(f"Erro ao criar título: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            messages.error(request, f'Erro ao salvar título: {str(e)}')
+            return render(request, 'titulos_adicionar_pg_devedor.html', {
+                'devedor': devedor, 'tipos_docs': tipos_docs, 'empresa_selecionada': empresa_selecionada
+            })
 
-        messages.success(request, 'Título adicionado com sucesso.')
-        next_url = request.GET.get('next') or reverse('listar_titulos_por_devedor', args=[devedor.id])
-        return redirect(next_url)
-
-    return render(request, 'titulos_adicionar_pg_devedor.html', {
-        'devedor': devedor,
-        'tipos_docs': tipos_docs,
-        'empresa_selecionada': empresa_selecionada,
-    })
+    # Verificar se todas as variáveis necessárias estão definidas
+    if not devedor or not empresa_selecionada:
+        messages.error(request, 'Erro ao carregar dados do formulário.')
+        return redirect('listar_devedores')
+    
+    try:
+        return render(request, 'titulos_adicionar_pg_devedor.html', {
+            'devedor': devedor,
+            'tipos_docs': tipos_docs,
+            'empresa_selecionada': empresa_selecionada,
+        })
+    except Exception as e:
+        logger.error(f"Erro ao renderizar template: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        messages.error(request, 'Erro ao carregar formulário.')
+        return redirect('listar_devedores')
 
 
 
