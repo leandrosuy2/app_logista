@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+  .card { border-radius: 1rem; }
+  .required::after { content:" *"; color:#dc3545; }
+  .section-title { font-weight: 700; font-size: 1.1rem; margin-bottom: .75rem; }
+  .helper { font-size:.9rem; color:#6c757d; }
+  .kw-badge { cursor:pointer; user-select:none; }
+
+  /* Ajuste de Select2 (mantido do modelo; não é obrigatório aqui) */
+  .select2-container--bootstrap-5 .select2-selection--single{
+    min-height: calc(2.5rem + 2px);
+    padding: .375rem .75rem;
+  }
+  .select2-container--bootstrap-5 .select2-selection__rendered{
+    line-height: 1.6;
+  }
+</style>
+
+<div class="container mt-5">
+  <h1 class="text-center mb-2">Adicionar Devedor</h1>
+  <p class="text-center text-muted mb-4">Preencha os dados do devedor. A empresa já vem definida pela sua sessão.</p>
+
+  {% if errors %}
+    <div class="alert alert-danger">
+      <strong>Corrija os campos:</strong>
+      <ul class="mb-0">
+      {% for k,v in errors.items %}
+        <li>{{ v }}</li>
+      {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <form method="POST" class="row g-3 needs-validation" novalidate onsubmit="return validarFormularioFinal();">
+    {% csrf_token %}
+
+    <!-- ===================== SESSÃO — DADOS DO DEVEDOR ===================== -->
+    <div class="col-12">
+      <!-- Vinculação -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-body">
+          <div class="section-title">Vinculação</div>
+          <div class="row g-3">
+            <!-- Empresa (fixa pela sessão) -->
+            <div class="col-md-6">
+              <label class="form-label required">Empresa</label>
+              <input type="text" id="empresa_display" class="form-control" value="{{ empresa_sessao.razao_social }}" readonly>
+              <input type="hidden" name="empresa_id" id="empresa_id" value="{{ empresa_sessao.id }}">
+              <div class="helper mt-1">A empresa é definida automaticamente pela sua sessão.</div>
+            </div>
+
+            <!-- Tipo de Pessoa -->
+            <div class="col-md-6">
+              <label for="tipo_pessoa" class="form-label required">Tipo de Pessoa</label>
+              <select name="tipo_pessoa" id="tipo_pessoa" class="form-select" required onchange="togglePessoaFields()">
+                <option value="F" {% if initial.tipo_pessoa == 'F' or not initial.tipo_pessoa %}selected{% endif %}>Física</option>
+                <option value="J" {% if initial.tipo_pessoa == 'J' %}selected{% endif %}>Jurídica</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Identificação -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-body">
+          <div class="section-title">Identificação</div>
+          <div class="row g-3">
+            <!-- Pessoa Física -->
+            <div class="col-md-6 pessoa-fisica">
+              <label for="nome" class="form-label required">Nome</label>
+              <input type="text" name="nome" id="nome" class="form-control" value="{{ initial.nome|default_if_none:'' }}">
+            </div>
+            <div class="col-md-6 pessoa-fisica">
+              <label for="cpf" class="form-label required">CPF</label>
+              <input type="text" name="cpf" id="cpf" class="form-control" maxlength="14"
+                     oninput="formatarCPF(this)" onblur="validarCPF()" value="{{ initial.cpf|default_if_none:'' }}">
+              <small id="cpfError" class="text-danger" style="display:none;">CPF inválido</small>
+            </div>
+            <div class="col-md-6 pessoa-fisica">
+              <label for="nome_mae" class="form-label">Nome da Mãe</label>
+              <input type="text" name="nome_mae" id="nome_mae" class="form-control" value="{{ initial.nome_mae|default_if_none:'' }}">
+            </div>
+            <div class="col-md-6 pessoa-fisica">
+              <label for="rg" class="form-label">RG</label>
+              <input type="text" name="rg" id="rg" class="form-control" value="{{ initial.rg|default_if_none:'' }}">
+            </div>
+
+            <!-- Pessoa Jurídica -->
+            <div class="col-md-6 pessoa-juridica" style="display:none;">
+              <label for="razao_social" class="form-label required">Razão Social</label>
+              <input type="text" name="razao_social" id="razao_social" class="form-control" value="{{ initial.razao_social|default_if_none:'' }}">
+            </div>
+            <div class="col-md-6 pessoa-juridica" style="display:none;">
+              <label for="cnpj" class="form-label required">CNPJ</label>
+              <input type="text" name="cnpj" id="cnpj" class="form-control" maxlength="18"
+                     oninput="formatarCNPJ(this)" onblur="validarCNPJ()" value="{{ initial.cnpj|default_if_none:'' }}">
+              <small id="cnpjError" class="text-danger" style="display:none;">CNPJ inválido</small>
+            </div>
+            <div class="col-md-6 pessoa-juridica" style="display:none;">
+              <label for="nome_fantasia" class="form-label">Nome Fantasia</label>
+              <input type="text" name="nome_fantasia" id="nome_fantasia" class="form-control" value="{{ initial.nome_fantasia|default_if_none:'' }}">
+            </div>
+            <div class="col-md-6 pessoa-juridica" style="display:none;">
+              <label for="nome_socio" class="form-label">Nome Sócio</label>
+              <input type="text" name="nome_socio" id="nome_socio" class="form-control" value="{{ initial.nome_socio|default_if_none:'' }}">
+            </div>
+            <div class="col-md-6 pessoa-juridica" style="display:none;">
+              <label for="cpf_socio" class="form-label">CPF Sócio</label>
+              <input type="text" name="cpf_socio" id="cpf_socio" class="form-control" maxlength="14"
+                     oninput="formatarCPF(this)" onblur="validarCPFSocio()" value="{{ initial.cpf_socio|default_if_none:'' }}">
+              <small id="cpfSocioError" class="text-danger" style="display:none;">CPF do sócio inválido</small>
+            </div>
+            <div class="col-md-6 pessoa-juridica" style="display:none;">
+              <label for="rg_socio" class="form-label">RG Sócio</label>
+              <input type="text" name="rg_socio" id="rg_socio" class="form-control" value="{{ initial.rg_socio|default_if_none:'' }}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Endereço -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-body">
+          <div class="section-title">Endereço</div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label for="cep" class="form-label">CEP</label>
+              <input type="text" name="cep" id="cep" class="form-control" onblur="buscarEndereco()" value="{{ initial.cep|default_if_none:'' }}">
+            </div>
+            <div class="col-md-8">
+              <label for="endereco" class="form-label">Endereço</label>
+              <input type="text" name="endereco" id="endereco" class="form-control" value="{{ initial.endereco|default_if_none:'' }}">
+            </div>
+            <div class="col-md-4">
+              <label for="bairro" class="form-label">Bairro</label>
+              <input type="text" name="bairro" id="bairro" class="form-control" value="{{ initial.bairro|default_if_none:'' }}">
+            </div>
+            <div class="col-md-2">
+              <label for="uf" class="form-label">UF</label>
+              <input type="text" name="uf" id="uf" class="form-control" value="{{ initial.uf|default_if_none:'' }}">
+            </div>
+            <div class="col-md-6">
+              <label for="cidade" class="form-label">Cidade</label>
+              <input type="text" name="cidade" id="cidade" class="form-control" value="{{ initial.cidade|default_if_none:'' }}">
+            </div>
+            <div class="col-12">
+              <label for="observacao" class="form-label">Observação</label>
+              <textarea name="observacao" id="observacao" class="form-control" rows="2">{{ initial.observacao|default_if_none:'' }}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Telefones / E-mails -->
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="section-title">Telefones / E-mails (opcionais)</div>
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label" for="telefone1">Telefone 1</label><input type="text" id="telefone1" name="telefone1" class="form-control" value="{{ initial.telefone1|default_if_none:'' }}"></div>
+            <div class="col-md-6"><label class="form-label" for="telefone2">Telefone 2</label><input type="text" id="telefone2" name="telefone2" class="form-control" value="{{ initial.telefone2|default_if_none:'' }}"></div>
+            <div class="col-md-6"><label class="form-label" for="telefone3">Telefone 3</label><input type="text" id="telefone3" name="telefone3" class="form-control" value="{{ initial.telefone3|default_if_none:'' }}"></div>
+            <div class="col-md-6"><label class="form-label" for="telefone4">Telefone 4</label><input type="text" id="telefone4" name="telefone4" class="form-control" value="{{ initial.telefone4|default_if_none:'' }}"></div>
+            <div class="col-md-6"><label class="form-label" for="telefone5">Telefone 5</label><input type="text" id="telefone5" name="telefone5" class="form-control" value="{{ initial.telefone5|default_if_none:'' }}"></div>
+            <div class="col-md-6"><label class="form-label" for="telefone6">Telefone 6</label><input type="text" id="telefone6" name="telefone6" class="form-control" value="{{ initial.telefone6|default_if_none:'' }}"></div>
+            <div class="col-md-6"><label class="form-label" for="telefone7">Telefone 7</label><input type="text" id="telefone7" name="telefone7" class="form-control" value="{{ initial.telefone7|default_if_none:'' }}"></div>
+            <div class="col-md-6"><label class="form-label" for="telefone8">Telefone 8</label><input type="text" id="telefone8" name="telefone8" class="form-control" value="{{ initial.telefone8|default_if_none:'' }}"></div>
+            <div class="col-md-6"><label class="form-label" for="telefone9">Telefone 9</label><input type="text" id="telefone9" name="telefone9" class="form-control" value="{{ initial.telefone9|default_if_none:'' }}"></div>
+            <div class="col-md-6"><label class="form-label" for="telefone10">Telefone 10</label><input type="text" id="telefone10" name="telefone10" class="form-control" value="{{ initial.telefone10|default_if_none:'' }}"></div>
+            <div class="col-md-6"><label class="form-label" for="email1">E-mail 1</label><input type="email" id="email1" name="email1" class="form-control" value="{{ initial.email1|default_if_none:'' }}"></div>
+            <div class="col-md-6"><label class="form-label" for="email2">E-mail 2</label><input type="email" id="email2" name="email2" class="form-control" value="{{ initial.email2|default_if_none:'' }}"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-end mt-3">
+        <button id="btnSalvar" type="submit" class="btn btn-success px-4">Salvar devedor</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- ====== Scripts auxiliares ====== -->
+<script>
+  // ViaCEP
+  function buscarEndereco() {
+    const cep = document.getElementById('cep').value.replace(/\D/g, '');
+    if (cep.length === 8) {
+      fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        .then(r => r.json())
+        .then(data => {
+          if (!data.erro) {
+            document.getElementById('endereco').value = data.logradouro || '';
+            document.getElementById('bairro').value   = data.bairro || '';
+            document.getElementById('uf').value       = data.uf || '';
+            document.getElementById('cidade').value   = data.localidade || '';
+          } else { alert('CEP não encontrado.'); }
+        })
+        .catch(() => alert('Erro ao buscar o CEP. Tente novamente.'));
+    } else if (cep.length && cep.length !== 8) {
+      alert('CEP inválido. Certifique-se de que tenha 8 dígitos.');
+    }
+  }
+
+  // PF/PJ + validações
+  function togglePessoaFields() {
+    const tipo = document.getElementById('tipo_pessoa').value;
+    const pf = document.querySelectorAll('.pessoa-fisica');
+    const pj = document.querySelectorAll('.pessoa-juridica');
+
+    if (tipo === 'F') {
+      pf.forEach(el=>el.style.display='block'); pj.forEach(el=>el.style.display='none');
+      setRequiredPF(true); setRequiredPJ(false);
+    } else {
+      pf.forEach(el=>el.style.display='none'); pj.forEach(el=>el.style.display='block');
+      setRequiredPF(false); setRequiredPJ(true);
+    }
+  }
+
+  function setRequiredPF(isReq){
+    const nome = document.getElementById('nome');
+    const cpf  = document.getElementById('cpf');
+    if (nome) nome.required = isReq;
+    if (cpf)  cpf.required  = isReq;
+  }
+  function setRequiredPJ(isReq){
+    const rz  = document.getElementById('razao_social');
+    const cnpj= document.getElementById('cnpj');
+    if (rz)   rz.required   = isReq;
+    if (cnpj) cnpj.required = isReq;
+  }
+
+  function validarCPF(){
+    const el=document.getElementById('cpf'), err=document.getElementById('cpfError');
+    if(!el) return true;
+    const dig=el.value.replace(/\D/g,'');
+    if(!dig.length){ if(err) err.style.display='none'; return true; }
+    const ok = (dig.length===11 && calculaCPF(dig));
+    if(err) err.style.display = ok ? 'none' : 'block';
+    return ok;
+  }
+  function validarCNPJ(){
+    const el=document.getElementById('cnpj'), err=document.getElementById('cnpjError');
+    if(!el) return true;
+    const dig=el.value.replace(/\D/g,'');
+    if(!dig.length){ if(err) err.style.display='none'; return true; }
+    const ok = (dig.length===14 && calculaCNPJ(dig));
+    if(err) err.style.display = ok ? 'none' : 'block';
+    return ok;
+  }
+  function validarCPFSocio(){
+    const el=document.getElementById('cpf_socio'); if(!el) return true;
+    const err=document.getElementById('cpfSocioError'), dig=el.value.replace(/\D/g,'');
+    if(!dig.length){ if(err) err.style.display='none'; return true; }
+    const ok = (dig.length===11 && calculaCPF(dig));
+    if(err) err.style.display = ok ? 'none' : 'block';
+    return ok;
+  }
+
+  function validarFormularioFinal() {
+    // Se PF e CPF preenchido inválido
+    const tipo = document.getElementById('tipo_pessoa').value;
+    if (tipo === 'F' && !validarCPF()) { alert('CPF inválido.'); return false; }
+    if (tipo === 'J' && !validarCNPJ()) { alert('CNPJ inválido.'); return false; }
+    if (tipo === 'J' && !validarCPFSocio()) { /* opcional: não bloquear */ }
+
+    const btn=document.getElementById('btnSalvar');
+    if(btn){ btn.disabled=true; btn.textContent='Salvando...'; }
+    return true;
+  }
+
+  function calculaCPF(cpf){
+    let soma=0, resto; if(/^(\d)\1+$/.test(cpf)) return false;
+    for(let i=1;i<=9;i++) soma += parseInt(cpf[i-1])*(11-i);
+    resto=(soma*10)%11; if(resto===10||resto===11) resto=0;
+    if(resto!==parseInt(cpf[9])) return false;
+    soma=0; for(let i=1;i<=10;i++) soma += parseInt(cpf[i-1])*(12-i);
+    resto=(soma*10)%11; if(resto===10||resto===11) resto=0;
+    return resto===parseInt(cpf[10]);
+  }
+  function calculaCNPJ(cnpj){
+    let t=cnpj.length-2, n=cnpj.substring(0,t), d=cnpj.substring(t), s=0, p=t-7;
+    for(let i=t;i>=1;i--){ s+=n.charAt(t-i)*p--; if(p<2) p=9; }
+    let r=s%11<2?0:11-(s%11);
+    if(r!==parseInt(d.charAt(0))) return false;
+    t++; n=cnpj.substring(0,t); s=0; p=t-7;
+    for(let i=t;i>=1;i--){ s+=n.charAt(t-i)*p--; if(p<2) p=9; }
+    r=s%11<2?0:11-(s%11);
+    return r===parseInt(d.charAt(1));
+  }
+  function formatarCPF(campo){
+    let v=campo.value.replace(/\D/g,'');
+    if(v.length>11) v=v.substring(0,11);
+    campo.value = v.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, "$1.$2.$3-$4");
+  }
+  function formatarCNPJ(campo){
+    let v=campo.value.replace(/\D/g,'');
+    if(v.length>14) v=v.substring(0,14);
+    campo.value = v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, "$1.$2.$3/$4-$5");
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    togglePessoaFields();
+  });
+</script>
+
+{% endblock %}

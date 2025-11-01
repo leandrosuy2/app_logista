@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">Lista de Agendamentos</h1>
+    
+    <!-- Barra de pesquisa e botão de criar novo agendamento -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <form method="GET" class="w-75">
+            <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Pesquisar por devedor">
+        </form>
+        <a href="{% url 'criar_agendamento' %}" class="btn btn-primary">Criar Novo Agendamento</a>
+    </div>
+    
+    <!-- Tabela de agendamentos -->
+    <table class="table table-hover table-bordered align-middle" style="font-size: 0.9rem;">
+        <thead class="table-dark">
+            <tr>
+                <th>Devedor</th>
+                <th>Empresa</th>
+                <th>Telefone</th>
+                <th>Data de Abertura</th>
+                <th>Data de Retorno</th>
+                <th>Operador</th>
+                <th>Status</th>               
+                <th class="text-center">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for agendamento in agendamentos %}
+            <tr>
+                <td><b>{{ agendamento.devedor.nome }}</b></td>
+                <td><b>{{ agendamento.empresa.nome_fantasia }}</b></td>
+                <td><b>{{ agendamento.telefone|default:"Não informado" }}</b></td>
+                <td><b>{{ agendamento.data_abertura|date:"d/m/Y" }}</b></td>
+                <td><b>{{ agendamento.data_retorno|date:"d/m/Y" }}</b></td>
+                <td><b>{{ agendamento.operador }}</b></td>
+                <td>
+                    <span class="badge 
+                        {% if agendamento.status == 'Finalizado' %} bg-success 
+                        {% else %} bg-warning text-dark 
+                        {% endif %}">{{ agendamento.status }}</span>
+                </td>
+                <td class="text-center">
+                    <div class="d-flex justify-content-center align-items-center">
+                       <!-- <a href="{% url 'editar_agendamento' agendamento.id %}" class="btn btn-sm btn-warning me-1">Editar</a> -->
+                        {% if agendamento.status != 'Finalizado' %}
+                        <form method="POST" action="{% url 'finalizar_agendamento' agendamento.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success me-1">Finalizar</button>
+                        </form>
+                        {% endif %}
+                        <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#modalAgendamento{{ agendamento.id }}">
+                            Visualizar
+                        </button>
+                    </div>
+                </td>
+            </tr>
+
+            <!-- Modal de detalhes do agendamento -->
+            <div class="modal fade" id="modalAgendamento{{ agendamento.id }}" tabindex="-1" aria-labelledby="modalLabel{{ agendamento.id }}" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title" id="modalLabel{{ agendamento.id }}">Detalhes do Agendamento</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong>Devedor:</strong> {{ agendamento.devedor.nome }}</p>
+                            <p><strong>Empresa:</strong> {{ agendamento.empresa.nome_fantasia }}</p>
+                            <p><strong>Telefone:</strong> {{ agendamento.telefone|default:"Não informado" }}</p>
+                            <p><strong>Data de Retorno:</strong> {{ agendamento.data_retorno|date:"d/m/Y H:i" }}</p>
+                            <p><strong>Data de Abertura:</strong> {{ agendamento.data_abertura|date:"d/m/Y H:i" }}</p>
+                            <p><strong>Operador:</strong> {{ agendamento.operador }}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="badge 
+                                    {% if agendamento.status == 'Finalizado' %} bg-success 
+                                    {% else %} bg-warning text-dark 
+                                    {% endif %}">{{ agendamento.status }}</span>
+                            </p>
+                            <p><strong>Assunto:</strong> {{ agendamento.assunto|default:"Não informado" }}</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Paginação -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div>
+            Mostrando {{ agendamentos.start_index }} a {{ agendamentos.end_index }} de {{ agendamentos.paginator.count }} agendamentos.
+        </div>
+        <nav>
+            <ul class="pagination">
+                <!-- Botão de página anterior -->
+                {% if agendamentos.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ agendamentos.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Anterior</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+                {% endif %}
+
+                <!-- Páginas dinâmicas -->
+                {% with agendamentos.paginator.num_pages as total_pages %}
+                {% with agendamentos.number as current_page %}
+                {% for page in agendamentos.paginator.page_range %}
+                    {% if page >= current_page|add:"-5" and page <= current_page|add:"4" %}
+                    {% if page == current_page %}
+                    <li class="page-item active"><span class="page-link">{{ page }}</span></li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page }}{% if query %}&q={{ query }}{% endif %}">{{ page }}</a>
+                    </li>
+                    {% endif %}
+                    {% endif %}
+                {% endfor %}
+                {% endwith %}
+                {% endwith %}
+
+                <!-- Botão de próxima página -->
+                {% if agendamentos.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ agendamentos.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Próximo</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">Próximo</span></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% block content %}
+<div class="container py-4">
+  <h1 class="text-center mb-4">Visualizar  Devedor</h1>
+<div class="text-center mb-3">
+  <button type="button"
+          class="btn btn-secondary"
+          data-bs-toggle="modal"
+          data-bs-target="#modalFollowUps"
+          data-devedor="{{ devedor.id }}"
+          data-nome="{{ devedor.nome|default:'Devedor'|escape }}">
+    <i class="fas fa-comments me-2"></i> Ver follow-ups
+  </button>
+</div>
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <fieldset disabled>
+      <div class="row row-cols-1 row-cols-md-2 g-4">
+
+        <!-- CARD: Identificação -->
+        <div class="col">
+          <div class="card h-100 shadow-sm">
+            <div class="card-header fw-semibold">Identificação</div>
+            <div class="card-body">
+              <div class="row row-cols-1 row-cols-md-2 g-3">
+                <!-- Empresa -->
+                <div class="col">
+                  <label for="empresa_id" class="form-label">Empresa</label>
+                  <select name="empresa_id" id="empresa_id" class="form-select" required>
+                    {% for empresa in empresas %}
+                      <option value="{{ empresa.id }}" {% if devedor.empresa.id == empresa.id %}selected{% endif %}>
+                        {{ empresa.razao_social }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <!-- Tipo de Pessoa -->
+                <div class="col">
+                  <label for="tipo_pessoa" class="form-label">Tipo de Pessoa</label>
+                  <select name="tipo_pessoa" id="tipo_pessoa" class="form-select" required onchange="togglePessoaFields()">
+                    <option value="F" {% if devedor.tipo_pessoa == 'F' %}selected{% endif %}>Física</option>
+                    <option value="J" {% if devedor.tipo_pessoa == 'J' %}selected{% endif %}>Jurídica</option>
+                  </select>
+                </div>
+
+                <!-- Pessoa Física -->
+                <div class="col pessoa-fisica">
+                  <label for="nome" class="form-label">Nome</label>
+                  <input type="text" name="nome" id="nome" class="form-control" value="{{ devedor.nome }}">
+                </div>
+                <div class="col pessoa-fisica">
+                  <label for="cpf" class="form-label">CPF</label>
+                  <input type="text" name="cpf" id="cpf" class="form-control" inputmode="numeric" value="{{ devedor.cpf }}">
+                </div>
+
+                <!-- Pessoa Jurídica -->
+                <div class="col pessoa-juridica">
+                  <label for="cnpj" class="form-label">CNPJ</label>
+                  <input type="text" name="cnpj" id="cnpj" class="form-control" inputmode="numeric" value="{{ devedor.cnpj }}">
+                </div>
+                <div class="col pessoa-juridica">
+                  <label for="razao_social" class="form-label">Razão Social</label>
+                  <input type="text" name="razao_social" id="razao_social" class="form-control" value="{{ devedor.razao_social }}">
+                </div>
+                <div class="col pessoa-juridica">
+                  <label for="nome_fantasia" class="form-label">Nome Fantasia</label>
+                  <input type="text" name="nome_fantasia" id="nome_fantasia" class="form-control" value="{{ devedor.nome_fantasia }}">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD: Endereço -->
+        <div class="col">
+          <div class="card h-100 shadow-sm">
+            <div class="card-header fw-semibold">Endereço</div>
+            <div class="card-body">
+              <div class="row row-cols-1 row-cols-md-2 g-3">
+                <div class="col">
+                  <label for="cep" class="form-label">CEP</label>
+                  <input type="text" name="cep" id="cep" class="form-control" inputmode="numeric" value="{{ devedor.cep }}" onblur="buscarEndereco()">
+                </div>
+                <div class="col">
+                  <label for="endereco" class="form-label">Endereço</label>
+                  <input type="text" name="endereco" id="endereco" class="form-control" value="{{ devedor.endereco }}">
+                </div>
+                <div class="col">
+                  <label for="bairro" class="form-label">Bairro</label>
+                  <input type="text" name="bairro" id="bairro" class="form-control" value="{{ devedor.bairro }}">
+                </div>
+                <div class="col">
+                  <label for="uf" class="form-label">UF</label>
+                  <input type="text" name="uf" id="uf" class="form-control" maxlength="2" value="{{ devedor.uf }}">
+                </div>
+                <div class="col">
+                  <label for="cidade" class="form-label">Cidade</label>
+                  <input type="text" name="cidade" id="cidade" class="form-control" value="{{ devedor.cidade }}">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD: Telefones (2 por linha) -->
+        <div class="col-12">
+          <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Telefones</div>
+            <div class="card-body">
+              <div class="row row-cols-1 row-cols-md-2 g-3">
+                {% for i in telefones_range %}
+                  <div class="col">
+                    <label for="telefone{{ i }}" class="form-label">Telefone {{ i }}</label>
+                    <input type="text" name="telefone{{ i }}" id="telefone{{ i }}" class="form-control"
+                           inputmode="tel"
+                           value="{{ devedor_data|get_value:'telefone'|add:i }}">
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD: Observação (largura total) -->
+        <div class="col-12">
+          <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Observação</div>
+            <div class="card-body">
+              <textarea name="observacao" id="observacao" class="form-control" rows="3">{{ devedor.observacao }}</textarea>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </fieldset>
+
+  
+  </form>
+</div>
+
+<style>
+  /* Aparência consistente dos inputs, mesmo desabilitados */
+  .form-control, .form-select { min-height: 44px; }
+  fieldset[disabled] .form-control,
+  fieldset[disabled] .form-select,
+  fieldset[disabled] textarea {
+    background-color: #f8f9fa;
+    color: #6c757d;
+  }
+  .card { border-radius: 0.75rem; }
+</style>
+
+<script>
+  function togglePessoaFields() {
+    const tipo = document.getElementById('tipo_pessoa').value;
+    const pf = document.querySelectorAll('.pessoa-fisica');
+    const pj = document.querySelectorAll('.pessoa-juridica');
+
+    if (tipo === 'F') {
+      pf.forEach(el => el.classList.remove('d-none'));
+      pj.forEach(el => el.classList.add('d-none'));
+    } else {
+      pf.forEach(el => el.classList.add('d-none'));
+      pj.forEach(el => el.classList.remove('d-none'));
+    }
+  }
+
+  function buscarEndereco() {
+    const cep = (document.getElementById('cep').value || '').replace(/\D/g, '');
+    if (cep.length !== 8) return;
+    fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.erro) {
+          document.getElementById('endereco').value = data.logradouro || '';
+          document.getElementById('bairro').value   = data.bairro || '';
+          document.getElementById('uf').value       = data.uf || '';
+          document.getElementById('cidade').value   = data.localidade || '';
+        }
+      }).catch(()=>{});
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // inicia o toggle com base no valor atual
+    // aplica d-none para o grupo que não deve aparecer
+    const tipo = document.getElementById('tipo_pessoa').value;
+    if (tipo === 'F') {
+      document.querySelectorAll('.pessoa-juridica').forEach(el => el.classList.add('d-none'));
+    } else {
+      document.querySelectorAll('.pessoa-fisica').forEach(el => el.classList.add('d-none'));
+    }
+  });
+</script>
+<!-- ================== MODAL REUTILIZÁVEL DE FOLLOW-UPS ================== -->
+<div class="modal fade" id="modalFollowUps" tabindex="-1" aria-labelledby="modalFollowUpsLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-secondary text-white">
+        <h5 class="modal-title" id="modalFollowUpsLabel">Follow-ups</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div id="fuLoading" class="text-center py-4">
+          <div class="spinner-border" role="status"></div>
+          <div class="small mt-2">Carregando…</div>
+        </div>
+        <ul id="fuList" class="list-group d-none"></ul>
+        <div id="fuEmpty" class="alert alert-light border d-none">Nenhum follow-up para este devedor.</div>
+      </div>
+      <div class="modal-footer">
+        <button id="fuVerMais" type="button" class="btn btn-outline-secondary d-none">Ver mais</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #fuList .list-group-item{ border-left:4px solid #6c757d; }
+  #fuList .ts{ font-weight:600; color:#495057 }
+</style>
+
+<script>
+(function () {
+  const modal     = document.getElementById('modalFollowUps');
+  const fuList    = document.getElementById('fuList');
+  const fuLoading = document.getElementById('fuLoading');
+  const fuEmpty   = document.getElementById('fuEmpty');
+  const fuVerMais = document.getElementById('fuVerMais');
+
+  let currentDevedor = null;
+  let currentLimit   = 50;
+
+  function esc(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  async function loadFollowUps(devedorId, limit){
+    fuLoading.classList.remove('d-none');
+    fuList.classList.add('d-none');
+    fuEmpty.classList.add('d-none');
+    fuVerMais.classList.add('d-none');
+
+    try{
+      const base = "{% url 'followups_devedor_json' 0 %}";
+      const url  = base.replace('/0/', `/${devedorId}/`) + `?limit=${limit}`;
+      const res  = await fetch(url, { headers: { 'X-Requested-With': 'fetch' }});
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+
+      fuList.innerHTML = '';
+      if (!data.items || !data.items.length){
+        fuEmpty.classList.remove('d-none');
+      } else {
+        const frag = document.createDocumentFragment();
+        data.items.forEach(it => {
+          const li = document.createElement('li');
+          li.className = 'list-group-item';
+          li.innerHTML = `<div class="ts mb-1">${esc(it.created_at)}</div>
+                          <div style="white-space:pre-wrap">${esc(it.texto)}</div>`;
+          frag.appendChild(li);
+        });
+        fuList.appendChild(frag);
+        fuList.classList.remove('d-none');
+
+        if (data.items.length >= limit) fuVerMais.classList.remove('d-none');
+      }
+    } catch(e){
+      fuEmpty.textContent = 'Falha ao carregar os follow-ups.';
+      fuEmpty.classList.remove('d-none');
+    } finally {
+      fuLoading.classList.add('d-none');
+    }
+  }
+
+  modal.addEventListener('show.bs.modal', (ev) => {
+    const btn = ev.relatedTarget;
+    currentDevedor = btn?.getAttribute('data-devedor') || '{{ devedor.id }}';
+    currentLimit   = 50;
+
+    const nome = btn?.getAttribute('data-nome') || '{{ devedor.nome|default:"Devedor"|escapejs }}';
+    document.getElementById('modalFollowUpsLabel').textContent = `Follow-ups — ${nome}`;
+
+    if (currentDevedor) loadFollowUps(currentDevedor, currentLimit);
+  });
+
+  fuVerMais.addEventListener('click', () => {
+    currentLimit += 100;
+    if (currentDevedor) loadFollowUps(currentDevedor, currentLimit);
+  });
+})();
+</script>
+
+{% endblock %}

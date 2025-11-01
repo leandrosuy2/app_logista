@@ -1,0 +1,20 @@
+[0;1;32m●[0m lojista_gunicorn.service - Gunicorn instance to serve lojista.nortecheck.com.br
+     Loaded: loaded (/etc/systemd/system/lojista_gunicorn.service; enabled; vendor preset: enabled)
+     Active: [0;1;32mactive (running)[0m since Fri 2025-06-13 12:31:42 -03; 5min ago
+   Main PID: 84478 (gunicorn)
+      Tasks: 3 (limit: 2206)
+     Memory: 104.7M
+     CGroup: /system.slice/lojista_gunicorn.service
+             ├─84478 /home/app_lojista/venv/bin/python3 /home/app_lojista/venv/bin/gunicorn app.wsgi:application --chdir /home/app_lojista --bind 127.0.0.1:8002
+             └─84498 /home/app_lojista/venv/bin/python3 /home/app_lojista/venv/bin/gunicorn app.wsgi:application --chdir /home/app_lojista --bind 127.0.0.1:8002
+
+Jun 13 12:32:39 vps56263 gunicorn[84498]:   File "/home/app_lojista/venv/lib/python3.8/site-packages/django/core/handlers/exception.py", line 55, in inner
+Jun 13 12:32:39 vps56263 gunicorn[84498]:     response = get_response(request)
+Jun 13 12:32:39 vps56263 gunicorn[84498]:   File "/home/app_lojista/venv/lib/python3.8/site-packages/django/utils/deprecation.py", line 133, in __call__
+Jun 13 12:32:39 vps56263 gunicorn[84498]:     response = self.process_request(request)
+Jun 13 12:32:39 vps56263 gunicorn[84498]:   File "/home/app_lojista/venv/lib/python3.8/site-packages/django/middleware/common.py", line 48, in process_request
+Jun 13 12:32:39 vps56263 gunicorn[84498]:     host = request.get_host()
+Jun 13 12:32:39 vps56263 gunicorn[84498]:   File "/home/app_lojista/venv/lib/python3.8/site-packages/django/http/request.py", line 150, in get_host
+Jun 13 12:32:39 vps56263 gunicorn[84498]:     raise DisallowedHost(msg)
+Jun 13 12:32:39 vps56263 gunicorn[84498]: django.core.exceptions.DisallowedHost: Invalid HTTP_HOST header: 'lojista.nortecheck.com.br,lojista.nortecheck.com.br'. The domain name provided is not valid according to RFC 1034/1035.
+Jun 13 12:35:19 vps56263 gunicorn[84498]: Not Found: /favicon.ico

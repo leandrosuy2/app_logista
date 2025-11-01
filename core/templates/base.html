@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Negociar Cobranças - {% block title %}Sistema de Cobrança{% endblock %}</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <style>
+      :root{
+        --chip-border:#e5e7eb;
+        --chip-hover:#f3f4f6;
+        --chip-active:#dbeafe;
+        --brand-blue:#1e3a8a;
+        --brand-accent:#fbc02d;
+      }
+      body{
+        background:#f4f6f9;
+        font-family:'Poppins',system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+        color:#333;
+      }
+      .navbar{
+        background:#fff;
+        border-bottom:2px solid var(--brand-accent);
+        box-shadow:0 4px 8px rgba(0,0,0,.06);
+      }
+      .navbar-brand{
+        font-weight:700;
+        color:var(--brand-blue);
+        display:flex;align-items:center;gap:.5rem;
+      }
+      .navbar-brand:hover{ color:var(--brand-accent); }
+
+      /* ====== estilo “pílula” ====== */
+      .menu-chip{
+        border:1.5px solid var(--chip-border);
+        border-radius:9999px;
+        background:#fff;
+        padding:.45rem .9rem;
+        margin-right:.5rem;
+        display:flex; align-items:center; gap:.5rem;
+        font-weight:500;
+        transition:all .15s ease;
+        box-shadow:0 1px 2px rgba(0,0,0,.03);
+      }
+      .menu-chip:hover{ background:var(--chip-hover); text-decoration:none; }
+      .menu-chip.active{ background:var(--chip-active); border-color:#bfdbfe; }
+      .menu-chip i{ font-size:.95rem; }
+
+      /* Dropdown */
+      .dropdown-menu{
+        background:#fff;
+        border:1px solid var(--chip-border);
+        box-shadow:0 8px 24px rgba(0,0,0,.08);
+        border-radius:16px;
+        padding:.4rem;
+      }
+      .dropdown-item{
+        border-radius:10px;
+        display:flex; align-items:center; gap:.6rem;
+        padding:.55rem .75rem;
+      }
+      .dropdown-item:hover{ background:var(--chip-hover); }
+
+      .content-container{
+        padding:40px 20px;
+        background:#fff;
+        border-radius:14px;
+        box-shadow:0 6px 20px rgba(0,0,0,.08);
+        margin-top:32px;
+      }
+
+      footer{
+        background:#f4f6f9;
+        color:#333;
+        padding:20px 0;
+        text-align:center;
+        margin-top:40px;
+        box-shadow:0 -4px 8px rgba(0,0,0,.06);
+      }
+      footer a{ color:var(--brand-blue); font-weight:700; text-decoration:none; }
+      footer a:hover{ color:var(--brand-accent); }
+
+      .navbar-toggler{
+        border:0; font-size:1.35rem;
+        transition:transform .2s ease;
+      }
+      .navbar-toggler:hover{ transform:rotate(90deg); }
+    </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container d-flex align-items-center" style="justify-content:flex-start;">
+      <img src="/media/logos/logo_empresa.jpeg" alt="Logo" style="max-width:40px;height:auto;border-radius:8px;">
+      <a class="navbar-brand ms-3" href="{% url 'dashboard' %}" style="font-size:1rem;">
+        <i class="fas fa-balance-scale"></i> Negociar Cobranças
+      </a>
+
+      <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+              aria-controls="navbarNav" aria-expanded="false" aria-label="Alternar navegação">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto align-items-center">
+          <li class="nav-item">
+            <a class="menu-chip {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+               href="{% url 'dashboard' %}">
+              <i class="fas fa-gauge"></i> Painel
+            </a>
+          </li>
+
+          <!-- Gerenciamento -->
+          <li class="nav-item dropdown">
+            <a class="menu-chip dropdown-toggle" href="#" id="gerenciamentoMenu" role="button"
+               data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-screwdriver-wrench"></i> Gerenciamento
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="gerenciamentoMenu">
+              <li><a class="dropdown-item" href="{% url 'devedores_listar' %}">
+                <i class="fas fa-users"></i> Devedores</a></li>
+              <li><a class="dropdown-item" href="{% url 'quitados_listar' %}">
+                <i class="fas fa-list-check"></i> Lista de Quitados</a></li>
+              <li><a class="dropdown-item" href="{% url 'listar_agendamentos' %}">
+                <i class="fas fa-calendar-days"></i> Agendamentos</a></li>
+              <li><a class="dropdown-item" href="{% url 'acordos_listar' %}">
+                <i class="fas fa-handshake"></i> Acordos & Pagamentos</a></li>
+
+             
+            </ul>
+          </li>
+        </ul>
+
+        <ul class="navbar-nav align-items-center">
+          <li class="nav-item me-2">
+            <span class="text-dark small">Bem-vindo, <strong>{{ request.session.nome_fantasia_sessao }}</strong></span>
+          </li>
+          <li class="nav-item">
+            <a class="menu-chip" href="{% url 'logout' %}">
+              <i class="fas fa-right-from-bracket"></i> Sair
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Conteúdo -->
+  <div class="container content-container">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 Negociar Cobranças. Desenvolvido com <i class="fas fa-heart text-danger"></i> por nossa equipe.</p>
+      <p><a href="https://www.sistnortecheck.com.br" rel="noopener">Visite nosso site</a> |
+         <a href="mailto:support@advassessoria.com.br">Contato</a></p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

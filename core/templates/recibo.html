@@ -1,0 +1,54 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Recibo de Pagamento</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 14px; margin: 20px; }
+        .container { width: 80%; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .content { border: 1px solid #000; padding: 10px; }
+        .content table { width: 100%; border-collapse: collapse; }
+        .content table, .content th, .content td { border: 1px solid black; }
+        .content th, .content td { padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h3>Recibo de Pagamento</h3>
+        </div>
+        <div class="content">
+            <p>Recebemos de <b>{{ devedor.nome }}</b>, CPF/CNPJ: <b>{{ devedor.cpf_cnpj }}</b>,            
+                o valor de <b>R$ {{ parcela.valor_pago|floatformat:2 }}</b> 
+                (<b>{{ parcela.valor_pago|valor_por_extenso }}</b>),
+                referente ao pagamento
+                {% if parcela.numero and parcela.qtde_total %}
+                    da parcela <b>{{ parcela.numero }}/{{ parcela.qtde_total }}</b> 
+                {% else %}
+                    da entrada
+                {% endif %}
+                com vencimento em 
+                <b>{{ parcela.data_vencimento|date:"d/m/Y" }}</b>.
+            </p>
+            <p>
+                Para maior clareza, firmamos o presente recibo para que produza seus efeitos legais, 
+                dando plena, rasa e irrevogável quitação da parcela pelo valor recebido.
+            </p>
+            <p>
+                Pagamento recebido por <b>{{ empresa.razao_social|default:"Empresa não cadastrada" }}</b>, 
+                forma de pagamento: <b>{{ parcela.forma_pagamento }}</b>.
+            </p>
+            <p>&nbsp;</p>
+            <p>&nbsp;</p>
+            <p>&nbsp;</p>
+            <p align="right">{{ empresa.cidade|default:"Cidade" }}, {{ empresa.uf|default:"UF" }}, {{ parcela.data_pagamento|date:"d/m/Y" }}</p>
+            <p>&nbsp;</p>
+            <p align="center">--------------------------------------------</p>
+            <p align="center"><b>{{ empresa.razao_social|default:"Empresa não cadastrada" }}</b></p>
+            <p align="center"><b>{{ empresa.cnpj|default:"CNPJ não informado" }}</b></p>
+        </div>
+    </div>
+</body>
+</html>

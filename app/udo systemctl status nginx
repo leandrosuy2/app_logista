@@ -1,0 +1,16 @@
+[0;1;31m●[0m lojista_gunicorn.service - Gunicorn instance to serve lojista.nortecheck.com.br
+     Loaded: loaded (/etc/systemd/system/lojista_gunicorn.service; enabled; vendor preset: enabled)
+     Active: [0;1;31mfailed[0m (Result: exit-code) since Fri 2025-06-13 12:00:16 -03; 2s ago
+    Process: 83762 ExecStart=/home/app_lojista/venv/bin/gunicorn <modulo>.wsgi:application --bind 127.0.0.1:8002 [0;1;31m(code=exited, status=3)[0m
+   Main PID: 83762 (code=exited, status=3)
+
+Jun 13 12:00:16 vps56263 gunicorn[83791]:   File "<frozen importlib._bootstrap>", line 1014, in _gcd_import
+Jun 13 12:00:16 vps56263 gunicorn[83791]:   File "<frozen importlib._bootstrap>", line 991, in _find_and_load
+Jun 13 12:00:16 vps56263 gunicorn[83791]:   File "<frozen importlib._bootstrap>", line 973, in _find_and_load_unlocked
+Jun 13 12:00:16 vps56263 gunicorn[83791]: ModuleNotFoundError: No module named '<modulo>'
+Jun 13 12:00:16 vps56263 gunicorn[83791]: [2025-06-13 12:00:16 -0300] [83791] [INFO] Worker exiting (pid: 83791)
+Jun 13 12:00:16 vps56263 gunicorn[83762]: [2025-06-13 12:00:16 -0300] [83762] [ERROR] Worker (pid:83791) exited with code 3
+Jun 13 12:00:16 vps56263 gunicorn[83762]: [2025-06-13 12:00:16 -0300] [83762] [ERROR] Shutting down: Master
+Jun 13 12:00:16 vps56263 gunicorn[83762]: [2025-06-13 12:00:16 -0300] [83762] [ERROR] Reason: Worker failed to boot.
+Jun 13 12:00:16 vps56263 systemd[1]: [0;1;39m[0;1;31m[0;1;39mlojista_gunicorn.service: Main process exited, code=exited, status=3/NOTIMPLEMENTED[0m
+Jun 13 12:00:16 vps56263 systemd[1]: [0;1;38;5;185m[0;1;39m[0;1;38;5;185mlojista_gunicorn.service: Failed with result 'exit-code'.[0m

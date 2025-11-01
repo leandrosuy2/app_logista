@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  .bg-light-danger { background-color:#FF4500; color:#721c24; }
+</style>
+
+<div class="container mt-4">
+  <h1 class="text-center">Negociação do Devedor</h1>
+
+  {# ====== Totais ====== #}
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="alert alert-success text-center">
+        <h5>
+          <i class="fas fa-check-circle"></i> Total Quitado
+          <span data-bs-toggle="tooltip" title="Valor total já pago.">
+            <i class="fas fa-info-circle text-muted"></i>
+          </span>
+        </h5>
+        <p><strong>R$ {{ total_quitado|floatformat:2 }}</strong></p>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="alert alert-info text-center">
+        <h5>
+          <i class="fas fa-handshake"></i> Total Negociado
+          <span data-bs-toggle="tooltip" title="Valor que está em processo de negociação.">
+            <i class="fas fa-info-circle text-muted"></i>
+          </span>
+        </h5>
+        <p><strong>R$ {{ total_negociado|floatformat:2 }}</strong></p>
+      </div>
+    </div>
+
+    {# NOVO: Total negociado em aberto #}
+   <div class="col-md-3">
+  <div class="alert alert-danger text-center">
+    <h5 class="mb-1"><i class="fas fa-hourglass-half"></i> Total Negociado em aberto</h5>
+    <p class="mb-0"><strong>R$ {{ total_negociado_em_aberto|default:0|floatformat:2 }}</strong></p>
+  </div>
+</div>
+
+
+    <div class="col-md-3">
+      <div class="alert alert-warning text-center">
+        <h5>
+          <i class="fas fa-exclamation-triangle"></i> Total Pendente
+          <span data-bs-toggle="tooltip" title="Valor ainda não pago nem negociado.">
+            <i class="fas fa-info-circle text-muted"></i>
+          </span>
+        </h5>
+        <p><strong>R$ {{ total_pendente|floatformat:2 }}</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var tooltipTriggerList=[].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+      tooltipTriggerList.map(function (el) { return new bootstrap.Tooltip(el) })
+    });
+  </script>
+
+  {# ====== ENTRADA (mantido) ====== #}
+  {% if titulos_entrada %}
+    <h2 class="text-center mt-4">Entrada</h2>
+    <table class="table table-striped table-bordered text-center table-sm" style="font-size:0.9rem;">
+      <thead class="table-dark text-center">
+        <tr>
+          <th>Empresa</th>
+          <th>Devedor</th>
+          <th>Título</th>
+          <th>Valor</th>
+          <th>Vencimento</th>
+          <th>Status</th>
+          <th>Juros</th>
+          <th>Dias Atraso</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for titulo in titulos_entrada %}
+          <tr>
+            <td>{{ titulo.razao_social }}</td>
+            <td>{{ titulo.devedor_nome }}</td>
+            <td>{{ titulo.num_titulo }}</td>
+            <td>R$ {{ titulo.valor_recebido|floatformat:2 }}</td>
+            <td>{{ titulo.data_vencimento|date:"d/m/Y" }}</td>
+            <td>
+              {% if titulo.status_baixa == 0 %}
+                <span class="badge bg-warning text-dark">Pendente</span>
+              {% elif titulo.status_baixa == 2 %}
+                <span class="badge bg-success">Quitado</span>
+              {% elif titulo.status_baixa == 3 %}
+                <span class="badge bg-info text-dark">Negociado</span>
+              {% endif %}
+            </td>
+            <td>R$ {{ titulo.juros|floatformat:2 }}</td>
+            <td>{{ titulo.dias_atraso }}</td>
+            <td>
+              {% if titulo.status_baixa != 2 %}
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalQuitar{{ titulo.id }}">
+                  <i class="fas fa-check"></i> Quitar
+                </button>
+              {% endif %}
+              {% if titulo.status_baixa == 2 %}
+                <a href="{% url 'gerar_recibo' titulo.id %}" target="_blank" class="btn btn-sm btn-info">
+                  <i class="fas fa-file-pdf"></i> Gerar Recibo
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+
+          {# Modal de quitação da entrada (mantido) #}
+          <div class="modal fade" id="modalQuitar{{ titulo.id }}" tabindex="-1" aria-labelledby="modalQuitarLabel{{ titulo.id }}" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <form method="POST" action="{% url 'quitar_parcela' titulo.id %}">
+                  {% csrf_token %}
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="modalQuitarLabel{{ titulo.id }}">Quitar Entrada</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <p><strong>Título:</strong> {{ titulo.num_titulo }}</p>
+                    <p><strong>Valor a Quitar:</strong> R$ {{ titulo.valor_recebido|floatformat:2 }}</p>
+                    <p><strong>Vencimento:</strong> {{ titulo.data_vencimento|date:"d/m/Y" }}</p>
+                    <p><strong>Devedor:</strong> {{ titulo.devedor_nome }}</p>
+                    <div class="mb-3">
+                      <label for="valorRecebido{{ titulo.id }}" class="form-label">Valor Recebido:</label>
+                      <input type="number" step="0.01" class="form-control" id="valorRecebido{{ titulo.id }}" name="valorRecebido" value="{{ titulo.valor_recebido|floatformat:2 }}" required>
+                    </div>
+                    <div class="mb-3">
+                      <label for="dataBaixa{{ titulo.id }}" class="form-label">Data de Baixa:</label>
+                      <input type="date" class="form-control" id="dataBaixa{{ titulo.id }}" name="dataBaixa" required>
+                    </div>
+                    <div class="mb-3">
+                      <label for="formaPagamento{{ titulo.id }}" class="form-label">Forma de Pagamento:</label>
+                      <select class="form-select" id="formaPagamento{{ titulo.id }}" name="formaPagamento" required>
+                        <option value="0">Pix</option><option value="1">Dinheiro</option><option value="2">Cartão de Débito</option>
+                        <option value="3">Cartão de Crédito</option><option value="4">Cheque</option><option value="5">Depósito em Conta</option>
+                        <option value="6">Pagamento na Loja</option><option value="7">Boleto Bancário</option><option value="8">Duplicata</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Confirmar Quitação</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {# ====== Tabela principal ====== #}
+  <h2 class="text-center mt-4">Títulos Associados</h2>
+  <table class="table table-striped table-bordered text-center table-sm" style="font-size:0.9rem;">
+    <thead class="table-dark text-center">
+      <tr>
+        <th>Empresa</th>
+        <th>Devedor</th>
+        <th>Título</th>
+        <th>Valor Recebido</th>
+        <th>Total &amp; Parcela</th>
+        <th>Forma de Pagamento</th>
+        <th>Vencimento</th>
+        <th>Data de Baixa</th>
+        <th>Juros</th>
+        {# RENOMEADO #}
+        <th>Valor total com juros</th>
+        <th>Dias atraso</th>
+        {# NOVO #}
+        <th>Protocolo gerado</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if titulos %}
+        {% for titulo in titulos %}
+          {% if titulo.id not in entrada_ids %}
+            <tr style="{% if titulo.status_baixa == 3 and titulo.data_vencimento < today %}background-color:#FFA500;color:#000;{% endif %}">
+              <td>{{ titulo.razao_social }}</td>
+              <td>{{ titulo.devedor_nome }}</td>
+              <td>{{ titulo.num_titulo }}</td>
+              <td>R$ {{ titulo.valor_recebido|floatformat:2 }}</td>
+              <td>R$ {{ titulo.valor|floatformat:2 }}</td>
+              <td>{{ titulo.forma_pagamento }}</td>
+              <td>{% if titulo.data_vencimento %}{{ titulo.data_vencimento|date:"d/m/Y" }}{% else %}-{% endif %}</td>
+              <td>{% if titulo.data_baixa %}{{ titulo.data_baixa|date:"d/m/Y" }}{% else %}-{% endif %}</td>
+              <td>{{ titulo.juros|floatformat:2 }}</td>
+              <td>{{ titulo.valor_com_juros|floatformat:2 }}</td>
+              <td>{{ titulo.dias_atraso }}</td>
+
+              {# NOVA COLUNA: Protocolo gerado #}
+              <td>
+                {% if titulo.protocolo %}
+                  <span class="badge bg-success">Gerado</span><br><small>{{ titulo.protocolo }}</small>
+                {% elif titulo.codigo_protocolo %}
+                  <span class="badge bg-success">Gerado</span><br><small>{{ titulo.codigo_protocolo }}</small>
+                {% elif titulo.protocolo_gerado %}
+                  <span class="badge bg-success">Gerado</span><br><small>{{ titulo.protocolo_gerado }}</small>
+                {% else %}
+                  <span class="badge bg-secondary">Não</span>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if titulo.status_baixa == 0 %}
+                  <span class="badge bg-warning text-dark">Pendente</span>
+                {% elif titulo.status_baixa == 2 %}
+                  <span class="badge bg-success">Quitado</span>
+                {% elif titulo.status_baixa == 3 %}
+                  <span class="badge bg-info text-dark">Negociado</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if titulo.status_baixa == 3 %}
+                  <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalQuitar{{ titulo.id }}">
+                    <i class="fas fa-check"></i> Quitar
+                  </button>
+                 
+                {% endif %}
+                {% if titulo.status_baixa == 2 %}
+                  <a href="{% url 'gerar_recibo' titulo.id %}" target="_blank" class="btn btn-sm btn-info">
+                    <i class="fas fa-file-pdf"></i> Gerar Recibo
+                  </a>
+                {% endif %}
+                {% if titulo.status_baixa == 0 or titulo.status_baixa is none %}
+                  <a href="{% url 'realizar_acordo' titulo.id %}" class="btn btn-sm btn-success">
+                    <i class="fas fa-handshake"></i> Gerar Acordo
+                  </a>
+                  <a href="{% url 'realizar_baixa' titulo.id %}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-download"></i> Baixar
+                  </a>
+                 
+                {% endif %}
+              </td>
+            </tr>
+
+            {# Modal excluir (mantido) #}
+            <div class="modal fade" id="modalExcluir{{ titulo.id }}" tabindex="-1" aria-labelledby="modalExcluirLabel{{ titulo.id }}" aria-hidden="true">
+              <div class="modal-dialog"><div class="modal-content">
+                <form method="POST" action="{% url 'excluir_titulo' titulo.id %}">{% csrf_token %}
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="modalExcluirLabel{{ titulo.id }}">Confirmar Exclusão</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <p>Tem certeza que deseja excluir o título <strong>{{ titulo.num_titulo }}</strong>?</p>
+                    <p><strong>Valor:</strong> R$ {{ titulo.valor|floatformat:2 }}</p>
+                    <p><strong>Devedor:</strong> {{ titulo.devedor_nome }}</p>
+                    <p class="text-danger"><i class="fas fa-exclamation-triangle"></i> Esta ação não pode ser desfeita.</p>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                  </div>
+                </form>
+              </div></div>
+            </div>
+
+            {# Modal quitar parcela (mantido) #}
+            <div class="modal fade" id="modalQuitar{{ titulo.id }}" tabindex="-1" aria-labelledby="modalQuitarLabel{{ titulo.id }}" aria-hidden="true">
+              <div class="modal-dialog"><div class="modal-content">
+                <form method="POST" action="{% url 'quitar_parcela' titulo.id %}" onsubmit="return validarValorRecebido({{ titulo.id }}, {{ titulo.valor|floatformat:2 }});">
+                  {% csrf_token %}
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="modalQuitarLabel{{ titulo.id }}">Quitar Parcela</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <p><strong>Título:</strong> {{ titulo.num_titulo }}</p>
+                    <p><strong>Valor a Quitar:</strong> R$ {{ titulo.valor|floatformat:2 }}</p>
+                    <p><strong>Vencimento:</strong> {{ titulo.data_vencimento|date:"d/m/Y" }}</p>
+                    <p><strong>Devedor:</strong> {{ titulo.devedor_nome }}</p>
+                    <div class="mb-3">
+                      <label for="valorRecebido{{ titulo.id }}" class="form-label">Valor Recebido:</label>
+                      <input type="number" step="0.01" class="form-control" id="valorRecebido{{ titulo.id }}" name="valorRecebido" value="{{ titulo.valor|floatformat:2 }}" required>
+                      <div id="erroValorRecebido{{ titulo.id }}" class="text-danger mt-2" style="display:none;">O valor recebido não pode ser menor que o valor total do título.</div>
+                    </div>
+                    <div class="mb-3">
+                      <label for="dataBaixa{{ titulo.id }}" class="form-label">Data de Baixa:</label>
+                      <input type="date" class="form-control" id="dataBaixa{{ titulo.id }}" name="dataBaixa" required>
+                    </div>
+                    <div class="mb-3">
+                      <label for="formaPagamento{{ titulo.id }}" class="form-label">Forma de Pagamento:</label>
+                      <select class="form-select" id="formaPagamento{{ titulo.id }}" name="formaPagamento" required>
+                        <option value="0">Pix</option><option value="1">Dinheiro</option><option value="2">Cartão de Débito</option>
+                        <option value="3">Cartão de Crédito</option><option value="4">Cheque</option><option value="5">Depósito em Conta</option>
+                        <option value="6">Pagamento na Loja</option><option value="7">Boleto Bancário</option><option value="8">Duplicata</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Confirmar Quitação</button>
+                  </div>
+                </form>
+              </div></div>
+            </div>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="14">Nenhum título encontrado para esta empresa.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  function validarValorRecebido(tituloId, valorMinimo){
+    const input=document.getElementById(`valorRecebido${tituloId}`);
+    const erro=document.getElementById(`erroValorRecebido${tituloId}`);
+    if(parseFloat(input.value) < valorMinimo){ erro.style.display='block'; return false; }
+    erro.style.display='none'; return true;
+  }
+</script>
+{% endblock %}

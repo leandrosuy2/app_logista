@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Realizar Acordo</h1>
+	<span>Nome do cliente:<b> {{ titulo.devedor.nome }}</b></span>
+    <form method="post" class="mt-4">
+        {% csrf_token %}
+        
+        <!-- Valor da Dívida -->
+        <div class="row mb-3">
+            <label class="col-sm-4 col-form-label">Valor da Dívidas</label>
+            <div class="col-sm-8">
+                <span id="valor_divida_exibicao"><b>R$ {{ titulo.valor|floatformat:2 }}</b></span>
+                <input type="hidden" id="valor_divida" name="valor_divida" value="{{ titulo.valor|floatformat:2 }}">
+            </div>
+        </div>
+		<!-- Data Vencimento -->
+		
+		<div class="row mb-3">
+			<label class="col-sm-4 col-form-label">Data vencimento</label>
+			<div class="col-sm-8">
+				<span id="data_vencimento_exibicao"><b>{{ data_vencimento_formatada }}</b></span>
+				<input type="hidden" id="data_vencimento" name="data_vencimento" value="{{ data_vencimento_formatada }}">
+			</div>
+		</div>
+		<!-- Valor Total da Dívida com Juros -->
+		
+		<div class="row mb-3">
+			<label class="col-sm-4 col-form-label">Valor Total da Dívida com Juros</label>
+			<div class="col-sm-8">
+				<span id="valor_total_divida_com_juros"><b>R$ {{ valor_total_com_juros|floatformat:2 }}</b></span>
+				<input type="hidden" id="valor_total_divida_com_juros_input" name="valor_total_divida_com_juros" value="{{ valor_total_com_juros|floatformat:2 }}">
+			</div>
+		</div>
+		<!-- Valor Juros -->
+        <div class="row mb-3">
+            <label class="col-sm-4 col-form-label">Valor total dos juros</label>
+            <div class="col-sm-8">
+              
+				
+				<input type="hidden" id="valor_juros" name="valor_juros" value="{{ titulo.juros|floatformat:2 }}">
+				
+				<spam><b>R$ {{ titulo.juros|floatformat:2 }}</b></span>
+            </div>
+        </div>
+
+		<!-- Desconto nos Juros (Percentual) -->
+        <div class="row mb-3">
+            <label class="col-sm-4 col-form-label">Desconto nos Juros (%)</label>
+            <div class="col-sm-8">
+                <input type="number" step="0.01" id="desconto_juros_percentual" name="desconto_juros_percentual" class="form-control">
+				
+            </div>
+        </div>
+
+        <!-- Valor da dívida com desconto nos Juros -->
+        <div class="row mb-3">
+            <label class="col-sm-4 col-form-label">Valor da dívida com desconto nos Juros</label>
+            <div class="col-sm-8">
+                <input type="number" step="0.01" id="valor_total_com_juros" name="valor_total_com_juros" class="form-control" readonly >
+				
+            </div>
+        </div>
+		
+        
+		<!-- Valor dos Juros com Desconto -->
+		<div class="row mb-3">
+			<label class="col-sm-4 col-form-label">Valor dos Juros com Desconto</label>
+			<div class="col-sm-8">
+				<input type="number" step="0.01" id="valor_juros_com_desconto" name="valor_juros_com_desconto" class="form-control" readonly value="0">
+				
+			</div>
+		</div>
+
+        
+        <!-- Valor Total Negociação -->
+        <div class="row mb-3">
+            <label class="col-sm-4 col-form-label">Valor Total Negociação</label>
+            <div class="col-sm-8">
+                <input type="number" step="0.01" id="valor_total_negociacao" name="valor_total_negociacao" class="form-control" readonly>
+            </div>
+        </div>
+        <!-- Entrada -->
+        <div class="row mb-3">
+            <label class="col-sm-4 col-form-label">Entrada</label>
+            <div class="col-sm-8">
+                <input type="number" step="0.01" id="entrada" name="entrada" class="form-control" required>
+            </div>
+        </div>
+        <!-- Quantidade de Parcelas -->
+        <div class="row mb-3">
+            <label class="col-sm-4 col-form-label">Quantidade de Parcelas</label>
+            <div class="col-sm-8">
+                <input type="number" name="qtde_prc" id="qtde_prc" class="form-control" min="1" required>
+            </div>
+        </div>
+        <!-- Valor por Parcela -->
+        <div class="row mb-3">
+            <label class="col-sm-4 col-form-label">Valor por Parcela</label>
+            <div class="col-sm-8">
+                <input type="number" step="0.01" id="valor_por_parcela" name="valor_por_parcela" class="form-control" readonly>
+            </div>
+        </div>
+        <!-- Data Entrada -->
+        <div class="row mb-3">
+            <label class="col-sm-4 col-form-label">Data Entrada</label>
+            <div class="col-sm-8">
+                <input type="date" name="data_entrada" id="data_entrada" class="form-control" required>
+            </div>
+        </div>
+        <!-- Vencimento Primeira Parcela -->
+        <div class="row mb-3">
+            <label class="col-sm-4 col-form-label">Vencimento Primeira Parcela</label>
+            <div class="col-sm-8">
+                <input type="date" name="venc_primeira_parcela" id="venc_primeira_parcela" class="form-control" required>
+            </div>
+        </div>
+        <!-- Contato -->
+        <div class="row mb-3">
+            <label class="col-sm-4 col-form-label">Telefone:</label>
+            <div class="col-sm-8">
+                <input type="text" name="contato" class="form-control" required>
+            </div>
+        </div>
+
+        <!-- Texto Acordo -->
+        <div class="row mb-3">
+            <div class="col">
+                <p>
+                    <strong>ACORDO EXTRAJUDICIAL DE RENEGOCIAÇÃO DE DÍVIDA:</strong><br>
+                    Eu, <span id="devedor_nome">{{ titulo.devedor.nome }}</span>, portador do CPF/CNPJ 
+                    <span id="devedor_cpf">
+                        {% if titulo.devedor.cpf %}
+                            {{ titulo.devedor.cpf }}
+                        {% else %}
+                            {{ titulo.devedor.cnpj }}
+                        {% endif %}
+                    </span>, confirmo a <strong>renegociação da dívida</strong> descrita abaixo em favor da empresa 
+                    <span id="empresa_nome">{{ titulo.devedor.empresa.razao_social }}</span>, de CNPJ 
+                    <span id="empresa_cnpj">{{ titulo.devedor.empresa.cnpj }}</span>. Neste ato resolvo firmar o presente Contrato de Confissão e Renegociação de Dívida, que se regerá pelas cláusulas e condições descritas no CONTRATO DE CONFISSÃO E RENEGOCIAÇÃO DE DÍVIDA, que será enviado após esta confirmação deste acordo.
+					
+                     <br><br><strong>Data da Entrada:</strong> <span id="texto_data_entrada"><b>-</b></span><br>
+					 <strong>Entrada:</strong> <span id="texto_entrada"><b>R$ 0,00</b></span><br>
+					<strong>Parcelas:</strong> <span id="texto_parcelas"><b>0x R$ 0,00</b></span>
+                </p>
+                
+            </div>
+        </div>
+
+        <!-- Tabela de Parcelas -->
+        <div class="row mb-3">
+            <label class="col-sm-4 col-form-label">Parcelas</label>
+            <div class="col-sm-8">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Parcela</th>
+                            <th>Data Vencimento</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="parcelas_table_body">
+                        <!-- Linhas geradas dinamicamente -->
+                    </tbody>
+					
+                </table>
+				 <p>
+                    O Sr/Sra, <span id="devedor_nome_confirmacao">{{ titulo.devedor.nome }}</span>, confirma o acordo <strong>SIM</strong> ou <strong>NÃO</strong>?
+                </p>
+            </div>
+			
+        </div>
+
+        <!-- Botões -->
+        <div class="text-center">
+            <button type="submit" class="btn btn-success">Salvar Acordo</button>
+            <a href="{% url 'titulos_listar' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('DOM completamente carregado.');
+
+        // Verifica se o campo "valor_juros_com_desconto" está presente no DOM
+        const campoJurosComDesconto = document.getElementById('valor_juros_com_desconto');
+        if (campoJurosComDesconto) {
+            console.log('Elemento encontrado:', campoJurosComDesconto);
+        } else {
+            console.error("Elemento com ID 'valor_juros_com_desconto' não encontrado.");
+        }
+
+        // Calcula os valores ao carregar a página
+        calcularValores();
+
+        // Registra eventos para os campos
+        document.getElementById('desconto_juros_percentual').addEventListener('input', calcularValores);
+        document.getElementById('qtde_prc').addEventListener('input', atualizarParcelas);
+        document.getElementById('entrada').addEventListener('input', atualizarParcelas);
+        document.getElementById('venc_primeira_parcela').addEventListener('change', atualizarParcelas);
+        document.getElementById('entrada').addEventListener('input', atualizarTextoAcordo);
+        document.getElementById('qtde_prc').addEventListener('input', atualizarTextoAcordo);
+        document.getElementById('valor_por_parcela').addEventListener('input', atualizarTextoAcordo);
+        document.getElementById('data_entrada').addEventListener('change', atualizarTextoAcordo);
+    });
+
+    function calcularValores() {
+        const tituloValor = parseFloat(document.getElementById('valor_divida').value) || 0;
+        const juros = parseFloat(document.getElementById('valor_juros').value) || 0;
+        const descontoPercentual = parseFloat(document.getElementById('desconto_juros_percentual').value) || 0;
+
+        console.log("Título Valor:", tituloValor);
+        console.log("Juros Totais:", juros);
+        console.log("Desconto Percentual:", descontoPercentual);
+
+        if (descontoPercentual < 0 || descontoPercentual > 100) {
+            alert("O desconto nos juros deve ser entre 0% e 100%.");
+            return;
+        }
+
+        // Calcula os valores
+
+        const desconto = (descontoPercentual / 100) * juros;
+        const valorJurosComDesconto = juros - desconto;
+        const valorTotalComJuros = tituloValor + valorJurosComDesconto;
+
+        console.log("Desconto Calculado:", desconto);
+        console.log("Valor dos Juros com Desconto:", valorJurosComDesconto);
+        console.log("Valor Total com Juros:", valorTotalComJuros);
+
+        // Atualiza os campos
+        const campoJurosComDesconto = document.getElementById('valor_juros_com_desconto');
+        if (campoJurosComDesconto) {
+            campoJurosComDesconto.value = valorJurosComDesconto.toFixed(2);
+            campoJurosComDesconto.dispatchEvent(new Event('input'));
+        } else {
+            console.error("Elemento com ID 'valor_juros_com_desconto' não encontrado.");
+        }
+
+        document.getElementById('valor_total_com_juros').value = valorTotalComJuros.toFixed(2);
+        document.getElementById('valor_total_negociacao').value = valorTotalComJuros.toFixed(2);
+
+        atualizarParcelas();
+    }
+
+    function atualizarParcelas() {
+        const entrada = parseFloat(document.getElementById('entrada').value) || 0;
+        const valorTotal = parseFloat(document.getElementById('valor_total_com_juros').value) || 0;
+        const qtdeParc = parseInt(document.getElementById('qtde_prc').value) || 1;
+
+        const parcelaValor = ((valorTotal - entrada) / qtdeParc).toFixed(2);
+        document.getElementById('valor_por_parcela').value = parcelaValor;
+
+        const tabelaBody = document.getElementById('parcelas_table_body');
+        tabelaBody.innerHTML = '';
+
+        const vencPrimeiraParcela = document.getElementById('venc_primeira_parcela').value;
+        if (!vencPrimeiraParcela) return;
+
+        const dataInicio = new Date(vencPrimeiraParcela);
+
+        for (let i = 0; i < qtdeParc; i++) {
+            const dataParcela = new Date(dataInicio);
+            dataParcela.setMonth(dataParcela.getMonth() + i);
+
+            const row = `<tr>
+                <td>${i + 1}</td>
+                <td>${dataParcela.toLocaleDateString('pt-BR')}</td>
+                <td>R$ ${parcelaValor}</td>
+            </tr>`;
+            tabelaBody.innerHTML += row;
+        }
+    }
+
+    function atualizarTextoAcordo() {
+        const entrada = parseFloat(document.getElementById('entrada').value) || 0;
+        const qtdeParc = parseInt(document.getElementById('qtde_prc').value) || 0;
+        const valorPorParcela = parseFloat(document.getElementById('valor_por_parcela').value) || 0;
+        const dataEntrada = document.getElementById('data_entrada').value;
+
+        // Formata a data para o formato dd/mm/yyyy
+        let dataFormatada = '-';
+        if (dataEntrada) {
+            const partesData = dataEntrada.split('-'); // Dividir a data no formato yyyy-mm-dd
+            dataFormatada = `${partesData[2]}/${partesData[1]}/${partesData[0]}`; // Reorganizar para dd/mm/yyyy
+        }
+
+        // Atualiza os textos dinâmicos
+        document.getElementById('texto_entrada').innerText = `R$ ${entrada.toFixed(2)}`;
+        document.getElementById('texto_parcelas').innerText = `${qtdeParc}x R$ ${valorPorParcela.toFixed(2)}`;
+        document.getElementById('texto_data_entrada').innerText = dataFormatada;
+    }
+</script>
+
+
+
+
+{% endblock %}
