@@ -352,6 +352,92 @@ body {
     color: white;
 }
 
+/* ========== PAGINAÇÃO ========== */
+.pagination {
+    margin: 1.5rem 0;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.page-item {
+    list-style: none;
+    margin: 0;
+}
+
+.page-link {
+    display: inline-block;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    min-width: 38px;
+    text-align: center;
+}
+
+.page-link:hover {
+    color: #007bff;
+    background-color: #f8f9fa;
+    border-color: #007bff;
+    text-decoration: none;
+}
+
+.page-link:focus {
+    box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.1);
+    outline: none;
+}
+
+.page-item.active .page-link {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+    cursor: default;
+}
+
+.page-item.active .page-link:hover {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.page-item.disabled .page-link {
+    color: #6c757d;
+    background-color: #fff;
+    border-color: #dee2e6;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.page-item.disabled .page-link:hover {
+    color: #6c757d;
+    background-color: #fff;
+    border-color: #dee2e6;
+}
+
+.page-item.disabled .page-link {
+    cursor: default;
+}
+
+/* Estilo para os três pontos na paginação */
+.page-item.disabled .page-link.ellipsis {
+    border: none;
+    background-color: transparent;
+    padding: 0.5rem 0.25rem;
+    min-width: auto;
+    opacity: 1;
+}
+
+.page-item.disabled .page-link.ellipsis:hover {
+    background-color: transparent;
+    border: none;
+}
+
 /* ========== RESPONSIVIDADE ========== */
 @media (max-width: 768px) {
     .dashboard-card {
@@ -422,6 +508,17 @@ body {
         padding: 0.3rem 0.5rem;
         font-size: 0.7rem;
         margin: 0.05rem;
+    }
+    
+    .pagination {
+        margin: 1.25rem 0;
+        gap: 0.2rem;
+    }
+    
+    .page-link {
+        padding: 0.45rem 0.65rem;
+        font-size: 0.75rem;
+        min-width: 34px;
     }
     
     .container {
@@ -595,6 +692,21 @@ body {
         font-size: 0.65rem;
         margin: 0.05rem;
         display: inline-block;
+    }
+    
+    .pagination {
+        margin: 1rem 0;
+        gap: 0.15rem;
+    }
+    
+    .page-link {
+        padding: 0.4rem 0.55rem;
+        font-size: 0.7rem;
+        min-width: 32px;
+    }
+    
+    .page-link i {
+        font-size: 0.65rem;
     }
     
     /* Adiciona indicador visual de scroll horizontal */
@@ -1153,27 +1265,87 @@ body {
     </div>
 
     <!-- Paginação -->
-    <div class="mt-3">
-        <nav>
-            <ul class="pagination justify-content-center">
-                {% if negociados_paginated.has_previous %}
+    <nav aria-label="Paginação de negociados em atraso">
+        <ul class="pagination">
+            {% if negociados_paginated.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page_negociados={{ negociados_paginated.previous_page_number }}" aria-label="Página anterior">
+                    <i class="fas fa-chevron-left"></i> <span class="d-none d-sm-inline">Anterior</span>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">
+                    <i class="fas fa-chevron-left"></i> <span class="d-none d-sm-inline">Anterior</span>
+                </span>
+            </li>
+            {% endif %}
+
+            {% if negociados_paginated.paginator.num_pages <= 7 %}
+                {% for num in negociados_paginated.paginator.page_range %}
+                    {% if negociados_paginated.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page_negociados={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                {% if negociados_paginated.number > 3 %}
                 <li class="page-item">
-                    <a class="page-link" href="?page_negociados={{ negociados_paginated.previous_page_number }}">Anterior</a>
+                    <a class="page-link" href="?page_negociados=1">1</a>
+                </li>
+                {% if negociados_paginated.number > 4 %}
+                <li class="page-item disabled">
+                    <span class="page-link ellipsis">...</span>
                 </li>
                 {% endif %}
+                {% endif %}
 
-                <li class="page-item">
-                    <a class="page-link" href="#">Página {{ negociados_paginated.number }} de {{ negociados_paginated.paginator.num_pages }}</a>
-                </li>
+                {% for num in negociados_paginated.paginator.page_range %}
+                    {% if num >= negociados_paginated.number|add:'-2' and num <= negociados_paginated.number|add:'2' %}
+                        {% if negociados_paginated.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page_negociados={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
 
-                {% if negociados_paginated.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page_negociados={{ negociados_paginated.next_page_number }}">Próxima</a>
+                {% if negociados_paginated.number < negociados_paginated.paginator.num_pages|add:'-2' %}
+                {% if negociados_paginated.number < negociados_paginated.paginator.num_pages|add:'-3' %}
+                <li class="page-item disabled">
+                    <span class="page-link ellipsis">...</span>
                 </li>
                 {% endif %}
-            </ul>
-        </nav>
-    </div>
+                <li class="page-item">
+                    <a class="page-link" href="?page_negociados={{ negociados_paginated.paginator.num_pages }}">{{ negociados_paginated.paginator.num_pages }}</a>
+                </li>
+                {% endif %}
+            {% endif %}
+
+            {% if negociados_paginated.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page_negociados={{ negociados_paginated.next_page_number }}" aria-label="Próxima página">
+                    <span class="d-none d-sm-inline">Próxima </span><i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">
+                    <span class="d-none d-sm-inline">Próxima </span><i class="fas fa-chevron-right"></i>
+                </span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
     {% else %}
     <p class="text-muted">Nenhum título negociado em atraso encontrado.</p>
     {% endif %}
