@@ -2,111 +2,766 @@
 
 {% block content %}
 <style>
-.card-equal {
-    height: 100%;
+/* ========== RESET E ESTILOS GERAIS ========== */
+* {
+    box-sizing: border-box;
 }
-.card-body {
+
+html, body {
+    width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    background: #f8f9fa;
+    margin: 0;
+    padding: 0;
+}
+
+/* ========== CARDS DE ESTATÍSTICAS ========== */
+.dashboard-card {
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    position: relative;
+    background: white;
+    min-height: 100px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.dashboard-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #495057;
+}
+
+.card-content {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     justify-content: space-between;
-    height: 100%;
+    padding: 1rem 1.25rem;
+    position: relative;
+    z-index: 1;
+    min-height: 100px;
 }
-.row.g-3 {
+
+.card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.card-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+.card-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.2;
+    color: #212529;
+    word-break: break-word;
+}
+
+.card-icon {
+    font-size: 2.5rem;
+    opacity: 0.15;
+    color: #495057;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+}
+
+/* Cores profissionais para os cards */
+.card-gradient-1 {
+    background: white;
+}
+.card-gradient-1::before {
+    background: #007bff;
+}
+
+.card-gradient-2 {
+    background: white;
+}
+.card-gradient-2::before {
+    background: #28a745;
+}
+
+.card-gradient-3 {
+    background: white;
+}
+.card-gradient-3::before {
+    background: #ffc107;
+}
+
+.card-gradient-4 {
+    background: white;
+}
+.card-gradient-4::before {
+    background: #dc3545;
+}
+
+.card-gradient-5 {
+    background: white;
+}
+.card-gradient-5::before {
+    background: #fd7e14;
+}
+
+.card-gradient-6 {
+    background: white;
+}
+.card-gradient-6::before {
+    background: #17a2b8;
+}
+
+.card-gradient-7 {
+    background: white;
+}
+.card-gradient-7::before {
+    background: #6c757d;
+}
+
+/* ========== CAMPO DE BUSCA ========== */
+.search-container {
+    margin: 1.5rem 0;
+    width: 100%;
+}
+
+.search-form {
+    position: relative;
+    width: 100%;
+}
+
+.search-wrapper {
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    padding: 0.25rem;
     display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
+    align-items: center;
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
 }
+
+.search-wrapper:focus-within {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.25);
+}
+
+.search-icon {
+    padding: 0.4rem 0.6rem;
+    color: #6c757d;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.875rem;
+    background: transparent;
+    min-width: 0;
+    width: 100%;
+}
+
+.search-input::placeholder {
+    color: #adb5bd;
+}
+
+.search-btn {
+    background: #007bff;
+    border: none;
+    border-radius: 4px;
+    padding: 0.4rem 1rem;
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.search-btn:hover {
+    background: #0056b3;
+}
+
+.search-btn i {
+    display: inline-block;
+}
+
+/* ========== TÍTULOS DAS SEÇÕES ========== */
+.section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 1.25rem 0 0.75rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.section-title i {
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #dee2e6;
+    margin-left: 1rem;
+}
+
+/* Mensagens de "nenhum item encontrado" */
+.text-muted {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.text-muted.small {
+    font-size: 0.75rem;
+}
+
+/* ========== TABELAS ========== */
+.table-container {
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-bottom: 2rem;
+    width: 100%;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    display: block;
+}
+
+.custom-table {
+    width: 100%;
+    margin: 0;
+    font-size: 0.8rem;
+    min-width: 600px;
+}
+
+.custom-table thead {
+    background: #495057;
+    color: white;
+}
+
+.custom-table thead th {
+    padding: 0.6rem 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.3px;
+    border: none;
+    white-space: nowrap;
+}
+
+.custom-table tbody tr {
+    border-bottom: 1px solid #f1f3f5;
+}
+
+.custom-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.custom-table tbody td {
+    padding: 0.6rem 0.75rem;
+    vertical-align: middle;
+    border: none;
+    white-space: nowrap;
+    font-size: 0.8rem;
+}
+
+.custom-table tbody td b {
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+/* Estilos para células de ações que podem ter quebra */
+.custom-table tbody td.text-center {
+    white-space: normal;
+}
+
+.custom-table tbody td .btn-action {
+    white-space: nowrap;
+    display: inline-block;
+    margin: 0.1rem;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+}
+
+/* ========== BOTÕES ========== */
+.btn-action {
+    padding: 0.4rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: none;
+    margin: 0.1rem;
+}
+
+.btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #138496;
+    color: white;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #218838;
+    color: white;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    color: white;
+}
+
+/* ========== RESPONSIVIDADE ========== */
+@media (max-width: 768px) {
+    .dashboard-card {
+        min-height: 90px;
+    }
+    
+    .card-content {
+        padding: 0.875rem 1rem;
+        min-height: 90px;
+    }
+    
+    .card-title {
+        font-size: 0.7rem;
+        margin-bottom: 0.4rem;
+    }
+    
+    .card-value {
+        font-size: 1.5rem;
+    }
+    
+    .card-icon {
+        font-size: 2rem;
+        margin-left: 0.4rem;
+    }
+    
+    .section-title {
+        font-size: 0.9rem;
+        margin: 1rem 0 0.75rem 0;
+    }
+    
+    .section-title i {
+        font-size: 0.85rem;
+    }
+    
+    .text-muted {
+        font-size: 0.75rem;
+    }
+    
+    .text-muted.small {
+        font-size: 0.7rem;
+    }
+    
+    .search-btn {
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+    }
+    
+    .custom-table {
+        font-size: 0.75rem;
+        min-width: 500px;
+    }
+    
+    .custom-table thead th {
+        padding: 0.5rem 0.4rem;
+        font-size: 0.65rem;
+    }
+    
+    .custom-table tbody td {
+        padding: 0.5rem 0.4rem;
+        font-size: 0.75rem;
+    }
+    
+    .custom-table tbody td b {
+        font-size: 0.75rem;
+    }
+    
+    .custom-table tbody td .btn-action {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.7rem;
+        margin: 0.05rem;
+    }
+    
+    .container {
+        padding: 1rem 0.75rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .dashboard-card {
+        min-height: 85px;
+        margin-bottom: 0.75rem;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .card-content {
+        padding: 0.75rem 1rem;
+        min-height: 85px;
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .card-info {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    .card-icon {
+        font-size: 1.75rem;
+        margin-left: 0.5rem;
+        opacity: 0.12;
+        flex-shrink: 0;
+    }
+    
+    .card-title {
+        font-size: 0.65rem;
+        margin-bottom: 0.3rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .card-value {
+        font-size: 1.3rem;
+        word-break: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    .search-wrapper {
+        flex-wrap: nowrap;
+        gap: 0.25rem;
+    }
+    
+    .search-icon {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+    
+    .search-input {
+        flex: 1;
+        min-width: 0;
+        padding: 0.4rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .search-btn {
+        flex-shrink: 0;
+        min-width: 100px;
+        font-size: 0.8rem;
+        padding: 0.4rem 0.75rem;
+        white-space: nowrap;
+    }
+    
+    .search-btn span {
+        display: none;
+    }
+    
+    .search-btn i.me-2 {
+        margin-right: 0 !important;
+    }
+    
+    .section-title {
+        font-size: 0.85rem;
+        margin: 0.75rem 0 0.5rem 0;
+        gap: 0.4rem;
+    }
+    
+    .section-title i {
+        font-size: 0.8rem;
+    }
+    
+    .section-title::after {
+        display: none;
+    }
+    
+    .text-muted {
+        font-size: 0.7rem;
+    }
+    
+    .text-muted.small {
+        font-size: 0.65rem;
+    }
+    
+    .container {
+        padding: 1rem 0.5rem;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .row {
+        margin-bottom: 1rem;
+        margin-left: 0;
+        margin-right: 0;
+        width: 100%;
+    }
+    
+    .row.g-4 {
+        --bs-gutter-x: 0.75rem;
+        --bs-gutter-y: 0.75rem;
+    }
+    
+    .row.g-4 > * {
+        padding-left: calc(var(--bs-gutter-x) * 0.5);
+        padding-right: calc(var(--bs-gutter-x) * 0.5);
+    }
+    
+    .col-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        width: 100%;
+    }
+    
+    .table-container {
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        position: relative;
+    }
+    
+    .custom-table {
+        min-width: 500px;
+        font-size: 0.7rem;
+    }
+    
+    .custom-table thead th {
+        padding: 0.4rem 0.35rem;
+        font-size: 0.6rem;
+    }
+    
+    .custom-table tbody td {
+        padding: 0.4rem 0.35rem;
+        font-size: 0.7rem;
+    }
+    
+    .custom-table tbody td b {
+        font-size: 0.7rem;
+    }
+    
+    .custom-table tbody td .btn-action {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.65rem;
+        margin: 0.05rem;
+        display: inline-block;
+    }
+    
+    /* Adiciona indicador visual de scroll horizontal */
+    .table-wrapper::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 30px;
+        background: linear-gradient(to right, transparent, rgba(255,255,255,0.8));
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    
+    .table-wrapper:hover::after {
+        opacity: 1;
+    }
+}
+
+
+/* ========== ESPAÇAMENTOS ========== */
+.container {
+    max-width: 1400px;
+    padding: 2rem 1rem;
+}
+
+.row {
+    margin-bottom: 1.5rem;
+}
+
+.row.g-4 > * {
+    padding-right: calc(var(--bs-gutter-x) * 0.5);
+    padding-left: calc(var(--bs-gutter-x) * 0.5);
+}
+
+/* Garantir que os cards não quebrem */
+.col-12,
+.col-sm-6,
+.col-md-6,
+.col-lg-3 {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 100%;
+}
+
+@media (min-width: 576px) {
+    .col-sm-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+@media (min-width: 768px) {
+    .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+@media (min-width: 992px) {
+    .col-lg-3 {
+        flex: 0 0 25%;
+        max-width: 25%;
+    }
+    
+    .search-btn span {
+        display: inline;
+    }
+    
+    .search-btn i.me-2 {
+        margin-right: 0.5rem !important;
+    }
+}
+
 </style>
 
-<div class="container mt-4">
-    <div class="row g-3">
+<div class="container">
+    <div class="row g-4">
         <!-- Card Pendentes -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow border-0 card-equal" style="background: linear-gradient(135deg, #1abb9c, #16a085);">
-                <div class="card-body text-white d-flex flex-column justify-content-between align-items-center">
-                    <div>
-                        <h5 class="fw-bold">Pendentes</h5>
-                        <p class="fs-2 mb-0 count-number" data-count="{{ titulos_pendentes }}">0</p>
+        <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+            <div class="card dashboard-card card-gradient-1 shadow-sm">
+                <div class="card-content">
+                    <div class="card-info">
+                        <h6 class="card-title">Pendentes</h6>
+                        <p class="card-value count-number mb-0" data-count="{{ titulos_pendentes }}">0</p>
                     </div>
-                    <i class="fas fa-file-alt fa-4x opacity-75"></i>
+                    <i class="fas fa-file-alt card-icon"></i>
                 </div>
             </div>
         </div>
 
         <!-- Card Quitados -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow border-0 card-equal" style="background: linear-gradient(135deg, #3498db, #2980b9);">
-                <div class="card-body text-white d-flex flex-column justify-content-between align-items-center">
-                    <div>
-                        <h5 class="fw-bold">Quitados</h5>
-                        <p class="fs-2 mb-0 count-number" data-count="{{ titulos_quitados }}">0</p>
+        <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+            <div class="card dashboard-card card-gradient-2 shadow-sm">
+                <div class="card-content">
+                    <div class="card-info">
+                        <h6 class="card-title">Quitados</h6>
+                        <p class="card-value count-number mb-0" data-count="{{ titulos_quitados }}">0</p>
                     </div>
-                    <i class="fas fa-check-circle fa-4x opacity-75"></i>
+                    <i class="fas fa-check-circle card-icon"></i>
                 </div>
             </div>
         </div>
 
         <!-- Card Negociados -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow border-0 card-equal" style="background: linear-gradient(135deg, #f39c12, #e67e22);">
-                <div class="card-body text-white d-flex flex-column justify-content-between align-items-center">
-                    <div>
-                        <h5 class="fw-bold">Negociados</h5>
-                        <p class="fs-2 mb-0 count-number" data-count="{{ titulos_negociados }}">0</p>
+        <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+            <div class="card dashboard-card card-gradient-3 shadow-sm">
+                <div class="card-content">
+                    <div class="card-info">
+                        <h6 class="card-title">Negociados</h6>
+                        <p class="card-value count-number mb-0" data-count="{{ titulos_negociados }}">0</p>
                     </div>
-                    <i class="fas fa-handshake fa-4x opacity-75"></i>
+                    <i class="fas fa-handshake card-icon"></i>
                 </div>
             </div>
         </div>
 
         <!-- Card Total de Clientes -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow border-0 card-equal" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
-                <div class="card-body text-white d-flex flex-column justify-content-between align-items-center">
-                    <div>
-                        <h5 class="fw-bold">Total de Clientes</h5>
-                        <p class="fs-2 mb-0 count-number" data-count="{{ total_clientes }}">0</p>
+        <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+            <div class="card dashboard-card card-gradient-4 shadow-sm">
+                <div class="card-content">
+                    <div class="card-info">
+                        <h6 class="card-title">Total de Clientes</h6>
+                        <p class="card-value count-number mb-0" data-count="{{ total_clientes }}">0</p>
                     </div>
-                    <i class="fas fa-users fa-4x opacity-75"></i>
+                    <i class="fas fa-users card-icon"></i>
                 </div>
             </div>
         </div>
 
         <!-- Card Negociados em Atraso -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow border-0 card-equal" style="background: linear-gradient(135deg, #ff6f61, #d9534f);">
-                <div class="card-body text-white d-flex flex-column justify-content-between align-items-center">
-                    <div>
-                        <h5 class="fw-bold">Negociados em Atraso</h5>
-                        <p class="fs-2 mb-0 count-number" data-count="{{ negociados_em_atraso_count }}">0</p>
+        <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+            <div class="card dashboard-card card-gradient-5 shadow-sm">
+                <div class="card-content">
+                    <div class="card-info">
+                        <h6 class="card-title">Negociados em Atraso</h6>
+                        <p class="card-value count-number mb-0" data-count="{{ negociados_em_atraso_count }}">0</p>
                     </div>
-                    <i class="fas fa-exclamation-circle fa-4x opacity-75"></i>
+                    <i class="fas fa-exclamation-circle card-icon"></i>
                 </div>
             </div>
         </div>
 
         <!-- Card Quitados Hoje -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow border-0 card-equal" style="background: linear-gradient(135deg, #3498db, #2980b9);" data-bs-toggle="modal" data-bs-target="#modalQuitadosHoje">
-                <div class="card-body text-white d-flex flex-column justify-content-between align-items-center">
-                    <div>
-                        <h5 class="fw-bold">Quitados Hoje</h5>
-                        <p class="fs-2 mb-0">R$ {{ quitados_hoje|floatformat:2 }}</p>
+        <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+            <div class="card dashboard-card card-gradient-6 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalQuitadosHoje">
+                <div class="card-content">
+                    <div class="card-info">
+                        <h6 class="card-title">Quitados Hoje</h6>
+                        <p class="card-value mb-0">R$ {{ quitados_hoje|floatformat:2 }}</p>
                     </div>
-                    <i class="fas fa-check-circle fa-4x opacity-75"></i>
+                    <i class="fas fa-check-circle card-icon"></i>
                 </div>
             </div>
         </div>
 
         <!-- Card Negociados Hoje -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card shadow border-0 card-equal" style="background: linear-gradient(135deg, #34495e, #2c3e50);" data-bs-toggle="modal" data-bs-target="#modalNegociadosHoje">
-                <div class="card-body text-white d-flex flex-column justify-content-between align-items-center">
-                    <div>
-                        <h5 class="fw-bold">Negociados Hoje</h5>
-                        <p class="fs-2 mb-0">R$ {{ negociados_hoje|floatformat:2 }}</p>
+        <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+            <div class="card dashboard-card card-gradient-7 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalNegociadosHoje">
+                <div class="card-content">
+                    <div class="card-info">
+                        <h6 class="card-title">Negociados Hoje</h6>
+                        <p class="card-value mb-0">R$ {{ negociados_hoje|floatformat:2 }}</p>
                     </div>
-                    <i class="fas fa-handshake fa-4x opacity-75"></i>
+                    <i class="fas fa-handshake card-icon"></i>
                 </div>
             </div>
         </div>
@@ -300,67 +955,74 @@
     </script>
 
     <!-- Busca -->
-    <form method="get" action="{% url 'dashboard' %}" class="mb-4 p-3 shadow rounded bg-light">
-        <div class="input-group">
-            <input type="text" name="query" class="form-control border-primary fs-5" placeholder="🔍 Buscar por nome, CPF, CNPJ, Nome Fantasia,  etc." value="{{ query }}" style="box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);">
-            <button type="submit" class="btn btn-primary fs-5 px-4" style="background: linear-gradient(135deg, #007bff, #0056b3); box-shadow: 0 4px 10px rgba(0, 123, 255, 0.5);">
-                Buscar
-            </button>
-        </div>
-    </form>
+    <div class="search-container">
+        <form method="get" action="{% url 'dashboard' %}" class="search-form">
+            <div class="search-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" name="query" class="search-input" placeholder="Buscar por nome, CPF, CNPJ, Nome Fantasia..." value="{{ query }}">
+                <button type="submit" class="search-btn">
+                    <i class="fas fa-search me-2"></i> <span>Buscar</span>
+                </button>
+            </div>
+        </form>
+    </div>
 
     <!-- Agenda de trabalho do dia - Pendentes -->
-    <h2 class="mt-4">Agenda de trabalho do dia - Pendentes</h2>
-    <table class="table table-hover table-bordered mt-3" style="font-size: 0.8rem;">
-        <thead class="table-dark">
-            <tr>
-                <th>Devedor</th>
-                <th>Credor</th>
-                <th>Nome da Mãe</th>
-                <th>CPF/CNPJ</th>
-                <th class="text-center">Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in agenda_pendentes_paginated %}
-            <tr>
-                <td><b>{{ item.nome }}</b></td>
-                <td><b>{{ item.nome_fantasia_credor }}</b></td>
-                <td><b>{{ item.nome_mae }}</b></td>
-                <td><b>
-                    {% if item.cpf %}
-                        {{ item.cpf }}
-                    {% elif item.cnpj %}
-                        {{ item.cnpj }}
-                    {% else %}
-                        Não informado
-                    {% endif %}
-                    </b>
-                </td>
-                <td class="text-center">
-                    <a href="{% url 'detalhes_devedor' item.id %}" target="_blank" class="btn btn-sm btn-info">Visualizar</a>
-                    <a href="{% url 'realizar_baixa' item.id %}" class="btn btn-success btn-sm">Baixar</a>
-
-                    <!-- NOVO: Follow-ups -->
-                    <button type="button"
-                            class="btn btn-sm btn-secondary"
-                            data-bs-toggle="modal"
-                            data-bs-target="#modalFollowUps"
-                            data-devedor="{{ item.devedor_id }}"
-                            data-nome="{{ item.nome|escape }}">
-                      Follow-ups
-                    </button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <h2 class="section-title"><i class="fas fa-calendar-day"></i>Agenda de trabalho do dia - Pendentes</h2>
+    <div class="table-container">
+        <div class="table-wrapper">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Devedor</th>
+                        <th>Credor</th>
+                        <th>Nome da Mãe</th>
+                        <th>CPF/CNPJ</th>
+                        <th class="text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in agenda_pendentes_paginated %}
+                    <tr>
+                        <td><b>{{ item.nome }}</b></td>
+                        <td><b>{{ item.nome_fantasia_credor }}</b></td>
+                        <td><b>{{ item.nome_mae }}</b></td>
+                        <td><b>
+                            {% if item.cpf %}
+                                {{ item.cpf }}
+                            {% elif item.cnpj %}
+                                {{ item.cnpj }}
+                            {% else %}
+                                Não informado
+                            {% endif %}
+                            </b>
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'detalhes_devedor' item.id %}" target="_blank" class="btn-action btn-info">Visualizar</a>
+                            <a href="{% url 'realizar_baixa' item.id %}" class="btn-action btn-success">Baixar</a>
+                            <button type="button"
+                                    class="btn-action btn-secondary"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalFollowUps"
+                                    data-devedor="{{ item.devedor_id }}"
+                                    data-nome="{{ item.nome|escape }}">
+                                Follow-ups
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
     <!-- Agendamentos pendentes -->
-    <h2 class="mt-4">Agendamentos pendentes</h2>
+    <h2 class="section-title"><i class="fas fa-clock"></i>Agendamentos pendentes</h2>
     {% if agendamentos_hoje %}
-    <table class="table table-hover table-bordered align-middle mt-3" style="font-size: 0.8rem;">
-        <thead class="table-dark">
+    <div class="table-container">
+        <div class="table-wrapper">
+            <table class="custom-table">
+                <thead>
             <tr>
                 <th>Devedor</th>
                 <th>CPF / CNPJ</th>
@@ -396,18 +1058,16 @@
                 <td><b>{{ agendamento.data_retorno|date:"d/m/Y H:i" }}</b></td>
                 <td><b>{{ agendamento.operador }}</b></td>
                 <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#modalAgendamento{{ agendamento.id }}">
+                    <button type="button" class="btn-action btn-info" data-bs-toggle="modal" data-bs-target="#modalAgendamento{{ agendamento.id }}">
                         Visualizar
                     </button>
-
-                    <!-- NOVO: Follow-ups -->
                     <button type="button"
-                            class="btn btn-sm btn-secondary"
+                            class="btn-action btn-secondary"
                             data-bs-toggle="modal"
                             data-bs-target="#modalFollowUps"
                             data-devedor="{{ agendamento.devedor_id }}"
                             data-nome="{{ agendamento.devedor__nome|escape }}">
-                      Follow-ups
+                        Follow-ups
                     </button>
                 </td>
             </tr>
@@ -442,17 +1102,21 @@
                 </div>
             </div>
             {% endfor %}
-        </tbody>
-    </table>
+                </tbody>
+            </table>
+        </div>
+    </div>
     {% else %}
     <p class="text-muted small">Nenhum agendamento para hoje.</p>
     {% endif %}
 
     <!-- Negociados em atraso -->
-    <h2 class="mt-4">Negociados em atraso</h2>
+    <h2 class="section-title"><i class="fas fa-exclamation-triangle"></i>Negociados em atraso</h2>
     {% if negociados_paginated %}
-    <table class="table table-bordered table-striped">
-        <thead>
+    <div class="table-container">
+        <div class="table-wrapper">
+            <table class="custom-table">
+                <thead>
             <tr>
                 <th>Devedor</th>
                 <th>Empresa</th>
@@ -471,22 +1135,22 @@
                 <td>R$ {{ titulo.valor_total|floatformat:2 }}</td>
                 <td><span class="badge bg-warning">Negociado em atraso</span></td>
                 <td class="text-center">
-                    <a href="{% url 'detalhes_devedor' titulo.id %}" target="_blank" class="btn btn-sm btn-info">Visualizar</a>
-
-                    <!-- NOVO: Follow-ups -->
+                    <a href="{% url 'detalhes_devedor' titulo.id %}" target="_blank" class="btn-action btn-info">Visualizar</a>
                     <button type="button"
-                            class="btn btn-sm btn-secondary"
+                            class="btn-action btn-secondary"
                             data-bs-toggle="modal"
                             data-bs-target="#modalFollowUps"
                             data-devedor="{{ titulo.devedor_id }}"
                             data-nome="{{ titulo.devedor_nome|escape }}">
-                      Follow-ups
+                        Follow-ups
                     </button>
                 </td>
             </tr>
             {% endfor %}
-        </tbody>
-    </table>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
     <!-- Paginação -->
     <div class="mt-3">
@@ -517,9 +1181,11 @@
     <!-- (Os modais de parcela/baixa que você tinha podem permanecer aqui, se aplicáveis ao contexto) -->
 
     <!-- Últimos clientes cadastrados -->
-    <h2 class="mt-4">Últimos Clientes Cadastrados</h2>
-    <table class="table table-striped table-bordered mt-3" style="font-size: 0.8rem;">
-        <thead class="table-dark">
+    <h2 class="section-title"><i class="fas fa-users"></i>Últimos Clientes Cadastrados</h2>
+    <div class="table-container">
+        <div class="table-wrapper">
+            <table class="custom-table">
+                <thead>
             <tr>
                 <th>ID</th>
                 <th>Nome</th>
@@ -536,8 +1202,10 @@
                 <td><b>{{ cliente.created_at|date:"d/m/Y" }}</b></td>
             </tr>
             {% endfor %}
-        </tbody>
-    </table>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <!-- ================== MODAL REUTILIZÁVEL DE FOLLOW-UPS ================== -->
