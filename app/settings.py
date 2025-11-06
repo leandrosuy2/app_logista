@@ -30,7 +30,10 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'lojista.nortecheck.com.br',
-    'www.lojista.nortecheck.com.br'
+    'www.lojista.nortecheck.com.br',
+    'lojista.negociarcobrancas.com.br',
+    'negociarcobrancas.com.br',
+    'www.negociarcobrancas.com.br',
 ]
 
 
@@ -177,6 +180,12 @@ CSRF_TRUSTED_ORIGINS = [
     'http://nortecheck.com.br',
     'https://www.nortecheck.com.br',    
     'http://www.nortecheck.com.br',
+    'https://lojista.negociarcobrancas.com.br',
+    'http://lojista.negociarcobrancas.com.br',
+    'https://negociarcobrancas.com.br',
+    'http://negociarcobrancas.com.br',
+    'https://www.negociarcobrancas.com.br',
+    'http://www.negociarcobrancas.com.br',
     'http://testserver',  # Note o protocolo
 ]
 
@@ -220,7 +229,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 # ]
 
 # confiar no cabeçalho do Nginx p/ HTTPS
-# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # arquivos estáticos/mídia
 from pathlib import Path
