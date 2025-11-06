@@ -52,21 +52,6 @@ class Devedor(models.Model):
     def __str__(self):
         return self.nome or self.razao_social or f"Devedor {self.id}"
 
-# Modelo para Agendamentos
-class Agendamento(models.Model):
-    empresa = models.ForeignKey('Empresa', on_delete=models.CASCADE)
-    devedor = models.ForeignKey(Devedor, on_delete=models.CASCADE)
-    acordo_id = models.IntegerField(null=True, blank=True)
-    data_abertura = models.DateTimeField()
-    data_retorno = models.DateTimeField()
-    assunto = models.TextField()
-    operador = models.CharField(max_length=255, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"Agendamento {self.id} - {self.assunto[:20]}"
-
 
 # Modelo para Empresas
 class Empresa(models.Model):
@@ -135,6 +120,7 @@ class Titulo(models.Model):
     intervalo_dias = models.IntegerField(null=True, blank=True, verbose_name="Intervalo de Dias")
     forma_pag_Id = models.IntegerField(null=True, blank=True, verbose_name="ID da Forma de Pagamento")
     statusBaixa = models.IntegerField(null=True, blank=True, verbose_name="Status da Baixa")
+    renegociado = models.IntegerField(default=0, verbose_name="Renegociado")  # 0 = não renegociado, 1 = renegociado
     acordoComfirmed = models.BooleanField(default=False, verbose_name="Acordo Confirmado")
     id_cobranca = models.CharField(max_length=255, null=True, blank=True, verbose_name="ID da Cobrança")
     email_enviado = models.CharField(max_length=4, null=True, blank=True, verbose_name="Email Enviado")

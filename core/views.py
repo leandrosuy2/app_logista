@@ -33,7 +33,14 @@ from django.contrib.auth.hashers import make_password
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 import json
-from weasyprint import HTML
+# WeasyPrint - importação opcional (requer bibliotecas GTK no Windows)
+try:
+    from weasyprint import HTML
+    WEASYPRINT_AVAILABLE = True
+except (ImportError, OSError):
+    WEASYPRINT_AVAILABLE = False
+    HTML = None  # Placeholder para evitar erros
+
 from django.template.loader import render_to_string
 import tempfile
 import traceback
@@ -1127,6 +1134,7 @@ def importar_devedor(request):
                     valor=valor,
                     tipo_doc_id=tipo_doc_id,
                     acordoComfirmed=0,
+                    renegociado=0,
                 )
                 criados += 1
             except Exception as e:
@@ -1509,6 +1517,7 @@ def adicionar_titulo_pg_devedor(request, devedor_id):
                 tipo_doc=tipo_doc,
                 statusBaixa=status_baixa,
                 idTituloRef=None,
+                renegociado=0,
             )
             messages.success(request, 'Título adicionado com sucesso.')
             next_url = request.GET.get('next') or reverse('listar_titulos_por_devedor', args=[devedor.id])
@@ -1892,7 +1901,8 @@ def adicionar_titulo(request):
             dataEmissao=data_emis,         # <- se existir no seu modelo
             statusBaixa=status,
             statusBaixaGeral=status,       # <- MUITO IMPORTANTE p/ ficar igual ao Admin
-            idTituloRef=None,              # <- evita ser marcado como “filho” de parcelamento
+            idTituloRef=None,              # <- evita ser marcado como "filho" de parcelamento
+            renegociado=0,
         )
 
         messages.success(request, 'Título adicionado com sucesso.')
@@ -2078,6 +2088,7 @@ def realizar_acordo(request, titulo_id):
                     forma_pag_Id=None,
                     statusBaixa=3,  # Parcelas marcadas como negociadas
                     devedor_id=titulo.devedor_id,
+                    renegociado=1,  # Parcelas são consideradas renegociadas
                 )
                 print(f"Parcela {i} criada com sucesso: ID {nova_parcela.id}")
 

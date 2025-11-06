@@ -109,7 +109,7 @@ DATABASES = {
         'NAME': 'app',
         'USER': 'advassessoria',
         'PASSWORD': 'Parceria@2025!',
-        'HOST': 'localhost',
+        'HOST': '191.252.205.97',
         'PORT': '3306',
         'OPTIONS': {
             'charset': 'utf8mb4',
@@ -202,24 +202,25 @@ SESSION_COOKIE_AGE = 1209600  # 2 semanas
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 # ==== overrides para produção (lojista) ====
-DEBUG = False
+# Comentar as linhas abaixo para desenvolvimento local
+# DEBUG = False
 
-ALLOWED_HOSTS = [
-    'lojista.negociarcobrancas.com.br',
-    'negociarcobrancas.com.br',
-    'www.negociarcobrancas.com.br',
-    '127.0.0.1',
-    'localhost',
-]
+# ALLOWED_HOSTS = [
+#     'lojista.negociarcobrancas.com.br',
+#     'negociarcobrancas.com.br',
+#     'www.negociarcobrancas.com.br',
+#     '127.0.0.1',
+#     'localhost',
+# ]
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://lojista.negociarcobrancas.com.br',
-    'https://negociarcobrancas.com.br',
-    'https://www.negociarcobrancas.com.br',
-]
+# CSRF_TRUSTED_ORIGINS = [
+#     'https://lojista.negociarcobrancas.com.br',
+#     'https://negociarcobrancas.com.br',
+#     'https://www.negociarcobrancas.com.br',
+# ]
 
 # confiar no cabeçalho do Nginx p/ HTTPS
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # arquivos estáticos/mídia
 from pathlib import Path
