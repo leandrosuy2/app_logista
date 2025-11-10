@@ -366,6 +366,8 @@
                 <i class="fas fa-calendar-days"></i> Agendamentos</a></li>
               <li><a class="dropdown-item" href="{% url 'acordos_listar' %}">
                 <i class="fas fa-handshake"></i> Acordos & Pagamentos</a></li>
+              <li><a class="dropdown-item {% if request.resolver_match.url_name == 'relatorio_honorarios' %}active{% endif %}" href="{% url 'relatorio_honorarios' %}">
+                <i class="fas fa-file-invoice-dollar"></i> Relatório de Honorários</a></li>
             </ul>
           </li>
         </ul>

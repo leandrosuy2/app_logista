@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  .report-container{max-width:1400px;padding:1.25rem 1rem}
+  .report-title{font-size:1rem;font-weight:600;color:#2d3748;display:flex;align-items:center;gap:.5rem;margin:0 0 .75rem}
+  .report-sub{font-size:.8rem;color:#6c757d;margin-bottom:1rem}
+  .filter-card{background:#fff;border:1px solid #dee2e6;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:1rem;margin-bottom:1rem}
+  .filter-row{display:flex;flex-wrap:wrap;gap:.75rem}
+  .filter-group{flex:1 1 220px;min-width:220px}
+  .filter-group label{font-size:.8rem;color:#495057;margin-bottom:.35rem;display:block}
+  .filter-group input,.filter-group select{width:100%;border:1px solid #dee2e6;border-radius:4px;padding:.45rem .6rem;font-size:.85rem}
+  .filter-actions{display:flex;gap:.5rem;align-items:flex-end}
+  .btn{display:inline-flex;align-items:center;gap:.4rem;font-weight:600;border-radius:4px;border:none;padding:.45rem .8rem;font-size:.85rem;text-decoration:none}
+  .btn-primary{background:#007bff;color:#fff}
+  .btn-primary:hover{background:#0056b3;color:#fff}
+  .btn-outline{background:#fff;color:#495057;border:1px solid #dee2e6}
+  .btn-outline:hover{background:#f8f9fa}
+  .summary-row{display:flex;flex-wrap:wrap;gap:.75rem;margin:1rem 0}
+  .summary-card{flex:1 1 180px;min-width:180px;background:#fff;border:1px solid #dee2e6;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:.8rem}
+  .summary-card .label{font-size:.75rem;color:#6c757d;text-transform:uppercase;letter-spacing:.3px}
+  .summary-card .value{font-size:1rem;font-weight:700;color:#212529;margin-top:.25rem}
+  .table-container{background:#fff;border:1px solid #dee2e6;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+  .table-wrapper{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{width:100%;min-width:680px}
+  thead{background:#495057;color:#fff}
+  th,td{white-space:nowrap;padding:.55rem .75rem;font-size:.8rem;border:none}
+  tbody tr{border-bottom:1px solid #f1f3f5}
+  tbody tr:hover{background:#f8f9fa}
+  .pagination{margin:1rem 0;display:flex;justify-content:center;flex-wrap:wrap;gap:.25rem}
+  .page-item{list-style:none}
+  .page-link{display:inline-block;padding:.45rem .7rem;font-size:.8rem;font-weight:500;color:#495057;background:#fff;border:1px solid #dee2e6;border-radius:4px;text-decoration:none;min-width:36px;text-align:center}
+  .page-item.active .page-link{background:#007bff;color:#fff;border-color:#007bff}
+  .page-item.disabled .page-link{opacity:.6;cursor:default}
+  @media (max-width:576px){
+    .filter-group{flex:1 1 100%;min-width:100%}
+    .filter-actions{width:100%;justify-content:flex-start}
+    .report-container{padding:1rem .75rem}
+    th,td{padding:.45rem .5rem;font-size:.75rem}
+  }
+</style>
+
+<div class="report-container">
+  <h1 class="report-title"><i class="fas fa-file-invoice-dollar"></i>Relatório de Honorários</h1>
+  <div class="report-sub">Filtre e veja os valores. Detalhes completos no botão de “olho”.</div>
+
+  <form method="get" class="filter-card">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Data Início</label>
+        <input type="date" name="data_inicio" value="{{ data_inicio }}">
+      </div>
+      <div class="filter-group">
+        <label>Data Fim</label>
+        <input type="date" name="data_fim" value="{{ data_fim }}">
+      </div>
+      <div class="filter-group">
+        <label>Consultor</label>
+        <input type="text" name="consultor" placeholder="Nome do consultor" value="{{ consultor }}">
+      </div>
+      <div class="filter-group">
+        <label>Credor</label>
+        <select name="credor">
+          <option value="">Todos</option>
+          {% for c in credores %}
+          <option value="{{ c.id }}" {% if credor_id == c.id %}selected{% endif %}>{{ c.id }} - {{ c.nome_fantasia }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Devedor</label>
+        <input type="text" name="devedor" placeholder="Nome do devedor" value="{{ devedor }}">
+      </div>
+      <div class="filter-group">
+        <label>CPF/CNPJ</label>
+        <input type="text" name="cpf_cnpj" placeholder="CPF ou CNPJ" value="{{ cpf_cnpj }}">
+      </div>
+      <div class="filter-actions">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
+        <a href="{{ export_url }}" class="btn btn-outline"><i class="fas fa-file-excel"></i> Exportar Excel</a>
+      </div>
+    </div>
+  </form>
+
+  <div class="summary-row">
+    <div class="summary-card">
+      <div class="label">Total Quitado</div>
+      <div class="value">R$ {{ total_quitado|floatformat:2 }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Comissão (Honorários)</div>
+      <div class="value">R$ {{ total_comissao|floatformat:2 }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Operador ({{ OPERADOR_PERCENT }}%)</div>
+      <div class="value">R$ {{ total_operador|floatformat:2 }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Líquido</div>
+      <div class="value">R$ {{ total_liquido|floatformat:2 }}</div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <div class="table-wrapper">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Devedor</th>
+            <th>Credor</th>
+            <th>Pago</th>
+            <th>Honorários</th>
+            <th>Líquido</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in page_obj.object_list %}
+          <tr>
+            <td><b>{{ row.devedor }}</b></td>
+            <td><b>{{ row.credor_display }}</b></td>
+            <td>R$ {{ row.pago|floatformat:2 }}</td>
+            <td>R$ {{ row.honorarios|floatformat:2 }}</td>
+            <td>R$ {{ row.liquido|floatformat:2 }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-muted">Nenhum registro encontrado para os filtros informados.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <nav aria-label="Paginação do relatório">
+    <ul class="pagination">
+      {% if page_obj.has_previous %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&consultor={{ consultor }}&credor={{ credor_id }}&devedor={{ devedor }}&cpf_cnpj={{ cpf_cnpj }}"><i class="fas fa-chevron-left"></i> <span class="d-none d-sm-inline">Anterior</span></a></li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link"><i class="fas fa-chevron-left"></i> <span class="d-none d-sm-inline">Anterior</span></span></li>
+      {% endif %}
+
+      {% if page_obj.paginator.num_pages <= 7 %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if page_obj.number == num %}
+          <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% else %}
+          <li class="page-item"><a class="page-link" href="?page={{ num }}&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&consultor={{ consultor }}&credor={{ credor_id }}&devedor={{ devedor }}&cpf_cnpj={{ cpf_cnpj }}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        {% if page_obj.number > 3 %}
+        <li class="page-item"><a class="page-link" href="?page=1&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&consultor={{ consultor }}&credor={{ credor_id }}&devedor={{ devedor }}&cpf_cnpj={{ cpf_cnpj }}">1</a></li>
+        {% if page_obj.number > 4 %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+            {% if page_obj.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% else %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&consultor={{ consultor }}&credor={{ credor_id }}&devedor={{ devedor }}&cpf_cnpj={{ cpf_cnpj }}">{{ num }}</a></li>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.number < page_obj.paginator.num_pages|add:'-2' %}
+        {% if page_obj.number < page_obj.paginator.num_pages|add:'-3' %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&consultor={{ consultor }}&credor={{ credor_id }}&devedor={{ devedor }}&cpf_cnpj={{ cpf_cnpj }}">{{ page_obj.paginator.num_pages }}</a></li>
+        {% endif %}
+      {% endif %}
+
+      {% if page_obj.has_next %}
+      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}&consultor={{ consultor }}&credor={{ credor_id }}&devedor={{ devedor }}&cpf_cnpj={{ cpf_cnpj }}"><span class="d-none d-sm-inline">Próxima</span> <i class="fas fa-chevron-right"></i></a></li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link"><span class="d-none d-sm-inline">Próxima</span> <i class="fas fa-chevron-right"></i></span></li>
+      {% endif %}
+    </ul>
+  </nav>
+
+  <div class="summary-row">
+    <div class="summary-card">
+      <div class="label">Principal</div>
+      <div class="value">R$ {{ total_quitado|floatformat:2 }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Pago</div>
+      <div class="value">R$ {{ total_quitado|floatformat:2 }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Honorários</div>
+      <div class="value">R$ {{ total_comissao|floatformat:2 }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Líquido</div>
+      <div class="value">R$ {{ total_liquido|floatformat:2 }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label">Operador ({{ OPERADOR_PERCENT }}%)</div>
+      <div class="value">R$ {{ total_operador|floatformat:2 }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+

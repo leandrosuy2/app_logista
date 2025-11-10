@@ -2917,6 +2917,224 @@ def listar_parcelamentos(request):
     )
 
 
+# ========================= Relatório de Honorários =========================
+from django.db.models import Q, F, Sum, Value as V
+from django.db.models.functions import Coalesce
+from decimal import Decimal
+import csv
+from urllib.parse import urlencode
+
+@lojista_login_required
+def relatorio_honorarios(request):
+    """
+    Relatório de Honorários (Quitados) por período com filtros.
+    - Filtra sempre pela empresa do lojista via empresa_id na sessão.
+    - Filtros: data início, data fim, consultor (empresa.operador), credor (empresa), devedor (nome), cpf/cnpj.
+    - Totais: Quitado, Comissão (15%), Operador (25% da comissão), Líquido.
+    """
+    empresa_id = request.session.get('empresa_id_sessao')
+    if not empresa_id:
+        return redirect('login')
+
+    # Parâmetros
+    dt_ini_str = request.GET.get('data_inicio', '')
+    dt_fim_str = request.GET.get('data_fim', '')
+    consultor = (request.GET.get('consultor') or '').strip()
+    credor_id = request.GET.get('credor')  # id da empresa (opcional)
+    devedor_nome = (request.GET.get('devedor') or '').strip()
+    cpf_cnpj = (request.GET.get('cpf_cnpj') or '').strip()
+
+    # Datas padrão: últimos 7 dias
+    from datetime import timedelta
+    hojed = now().date()
+    default_ini = hojed - timedelta(days=7)
+
+    def _parse(s):
+        from datetime import datetime as _dt
+        s = (s or '').strip()
+        for fmt in ('%Y-%m-%d', '%d/%m/%Y'):
+            try:
+                return _dt.strptime(s, fmt).date()
+            except Exception:
+                pass
+        return None
+
+    dt_ini = _parse(dt_ini_str) or default_ini
+    dt_fim = _parse(dt_fim_str) or hojed
+
+    # Query base: títulos quitados (statusBaixa=2) da empresa do lojista
+    # Usamos Titulo.join Devedor, Empresa para filtrar e exibir
+    titulos = (
+        Titulo.objects
+        .select_related('devedor', 'empresa')
+        .filter(
+            devedor__empresa_id=empresa_id,
+            statusBaixa=2,
+            data_baixa__isnull=False,
+            data_baixa__range=(dt_ini, dt_fim),
+            valorRecebido__isnull=False
+        )
+    )
+
+    if consultor:
+        titulos = titulos.filter(empresa__operador__icontains=consultor)
+    if credor_id and credor_id.isdigit():
+        titulos = titulos.filter(empresa_id=int(credor_id))
+    if devedor_nome:
+        titulos = titulos.filter(devedor__nome__icontains=devedor_nome)
+    if cpf_cnpj:
+        titulos = titulos.filter(Q(devedor__cpf__icontains=cpf_cnpj) | Q(devedor__cnpj__icontains=cpf_cnpj))
+
+    # Comissão e operador
+    COMISSAO_PERCENT = Decimal('0.15')  # 15%
+    OPERADOR_PERCENT = Decimal('0.25')  # 25% da comissão
+
+    # Montagem de linhas
+    linhas = []
+    total_quitado = Decimal('0')
+    for t in titulos:
+        pago = Decimal(str(t.valorRecebido or 0))
+        honor = (pago * COMISSAO_PERCENT).quantize(Decimal('0.01'))
+        liquido = (pago - honor).quantize(Decimal('0.01'))
+        total_quitado += pago
+        linhas.append({
+            'devedor': t.devedor.nome or t.devedor.razao_social or f'#{t.devedor_id}',
+            'credor_display': f"{t.empresa.id} - {t.empresa.nome_fantasia}" if t.empresa else '',
+            'pago': pago,
+            'honorarios': honor,
+            'liquido': liquido,
+        })
+
+    total_comissao = (total_quitado * COMISSAO_PERCENT).quantize(Decimal('0.01'))
+    total_operador = (total_comissao * OPERADOR_PERCENT).quantize(Decimal('0.01'))
+    total_liquido = (total_quitado - total_comissao).quantize(Decimal('0.01'))
+
+    # Paginação
+    paginator = Paginator(linhas, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Lista de credores (somente da empresa do lojista = próprio id)
+    # Aqui exibimos apenas a própria empresa (lojista vê só dele)
+    from .models import Empresa
+    credores = Empresa.objects.filter(id=empresa_id)
+
+    # Querystring para export (preserva filtros)
+    qs_export = request.GET.copy()
+    if 'page' in qs_export:
+        qs_export.pop('page')
+    export_url = f"{reverse('relatorio_honorarios_exportar')}?{qs_export.urlencode()}"
+
+    context = {
+        'page_obj': page_obj,
+        'data_inicio': dt_ini.strftime('%Y-%m-%d'),
+        'data_fim': dt_fim.strftime('%Y-%m-%d'),
+        'consultor': consultor,
+        'credor_id': int(credor_id) if (credor_id and credor_id.isdigit()) else None,
+        'devedor': devedor_nome,
+        'cpf_cnpj': cpf_cnpj,
+        'credores': credores,
+        'total_quitado': total_quitado,
+        'total_comissao': total_comissao,
+        'total_operador': total_operador,
+        'total_liquido': total_liquido,
+        'COMISSAO_PERCENT': int(COMISSAO_PERCENT * 100),
+        'OPERADOR_PERCENT': int(OPERADOR_PERCENT * 100),
+        'export_url': export_url,
+    }
+    return render(request, 'relatorio_honorarios.html', context)
+
+
+@lojista_login_required
+def relatorio_honorarios_exportar(request):
+    """Exporta o relatório em CSV (compatível com Excel) respeitando os filtros."""
+    empresa_id = request.session.get('empresa_id_sessao')
+    if not empresa_id:
+        return redirect('login')
+
+    # Mesmos filtros da view principal
+    dt_ini = request.GET.get('data_inicio')
+    dt_fim = request.GET.get('data_fim')
+    consultor = (request.GET.get('consultor') or '').strip()
+    credor_id = request.GET.get('credor')
+    devedor_nome = (request.GET.get('devedor') or '').strip()
+    cpf_cnpj = (request.GET.get('cpf_cnpj') or '').strip()
+
+    def _parse(s):
+        from datetime import datetime as _dt
+        s = (s or '').strip()
+        for fmt in ('%Y-%m-%d', '%d/%m/%Y'):
+            try:
+                return _dt.strptime(s, fmt).date()
+            except Exception:
+                pass
+        return None
+
+    from datetime import timedelta
+    hojed = now().date()
+    default_ini = hojed - timedelta(days=7)
+    d_ini = _parse(dt_ini) or default_ini
+    d_fim = _parse(dt_fim) or hojed
+
+    titulos = (
+        Titulo.objects
+        .select_related('devedor', 'empresa')
+        .filter(
+            devedor__empresa_id=empresa_id,
+            statusBaixa=2,
+            data_baixa__isnull=False,
+            data_baixa__range=(d_ini, d_fim),
+            valorRecebido__isnull=False
+        )
+    )
+    if consultor:
+        titulos = titulos.filter(empresa__operador__icontains=consultor)
+    if credor_id and credor_id.isdigit():
+        titulos = titulos.filter(empresa_id=int(credor_id))
+    if devedor_nome:
+        titulos = titulos.filter(devedor__nome__icontains=devedor_nome)
+    if cpf_cnpj:
+        titulos = titulos.filter(Q(devedor__cpf__icontains=cpf_cnpj) | Q(devedor__cnpj__icontains=cpf_cnpj))
+
+    COMISSAO_PERCENT = Decimal('0.15')
+    OPERADOR_PERCENT = Decimal('0.25')
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="relatorio_honorarios.csv"'
+
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow(['Devedor', 'Credor', 'Pago', 'Honorários', 'Líquido'])
+
+    total_quitado = Decimal('0')
+    total_comissao = Decimal('0')
+    total_liquido = Decimal('0')
+
+    for t in titulos:
+        pago = Decimal(str(t.valorRecebido or 0))
+        honor = (pago * COMISSAO_PERCENT).quantize(Decimal('0.01'))
+        liquido = (pago - honor).quantize(Decimal('0.01'))
+        credor_display = f"{t.empresa.id} - {t.empresa.nome_fantasia}" if t.empresa else ''
+        writer.writerow([
+            (t.devedor.nome or t.devedor.razao_social or f'#{t.devedor_id}'),
+            credor_display,
+            f"{pago:.2f}".replace('.', ','),
+            f"{honor:.2f}".replace('.', ','),
+            f"{liquido:.2f}".replace('.', ','),
+        ])
+        total_quitado += pago
+        total_comissao += honor
+        total_liquido += liquido
+
+    # Totais
+    writer.writerow([])
+    writer.writerow(['Totais', '', f"{total_quitado:.2f}".replace('.', ','), f"{total_comissao:.2f}".replace('.', ','), f"{total_liquido:.2f}".replace('.', ',')])
+
+    # Rodapé informativo
+    writer.writerow([])
+    writer.writerow(['Comissão (%)', 'Operador (%)', f"{int(COMISSAO_PERCENT*100)}%", f"{int(OPERADOR_PERCENT*100)}%", ''])
+
+    return response
+
 # core/views.py
 from django.shortcuts import render
 from core.decorators import lojista_login_required

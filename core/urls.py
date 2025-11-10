@@ -17,6 +17,9 @@ handler403 = 'core.views.permission_denied_view'
 urlpatterns = [
     path('', views.home_redirect, name='home'),  # Rota para redirecionar para o dashboard
     path('dashboard/', views.dashboard, name='dashboard'),
+    # Relatórios
+    path('relatorios/honorarios/', views.relatorio_honorarios, name='relatorio_honorarios'),
+    path('relatorios/honorarios/exportar/', views.relatorio_honorarios_exportar, name='relatorio_honorarios_exportar'),
     path('lojista/followups/<int:devedor_id>/', views.followups_devedor_json, name='followups_devedor_json'),
     path('devedores/listar/', listar_devedores, name='devedores_listar'),
     path('agendamentos/cadastrar/', views.agendamentos_cadastrar, name='agendamentos_cadastrar'),       
