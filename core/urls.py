@@ -20,6 +20,7 @@ urlpatterns = [
     # Relatórios
     path('relatorios/honorarios/', views.relatorio_honorarios, name='relatorio_honorarios'),
     path('relatorios/honorarios/exportar/', views.relatorio_honorarios_exportar, name='relatorio_honorarios_exportar'),
+    path('relatorios/honorarios/comprovante/<int:titulo_id>/', views.relatorio_honorarios_comprovante, name='relatorio_honorarios_comprovante'),
     path('lojista/followups/<int:devedor_id>/', views.followups_devedor_json, name='followups_devedor_json'),
     path('devedores/listar/', listar_devedores, name='devedores_listar'),
     path('agendamentos/cadastrar/', views.agendamentos_cadastrar, name='agendamentos_cadastrar'),       

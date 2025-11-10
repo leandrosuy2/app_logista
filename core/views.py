@@ -2923,6 +2923,9 @@ from django.db.models.functions import Coalesce
 from decimal import Decimal
 import csv
 from urllib.parse import urlencode
+from django.urls import reverse
+from django.http import FileResponse, Http404
+import mimetypes
 
 @lojista_login_required
 def relatorio_honorarios(request):
@@ -3021,8 +3024,8 @@ def relatorio_honorarios(request):
         parc_str = f"{t.nPrc or 1}/{t.qtde_parcelas or 1}"
         comprovante_url = ''
         try:
-            if t.comprovante and getattr(t.comprovante, 'url', ''):
-                comprovante_url = t.comprovante.url
+            if t.comprovante and getattr(t.comprovante, 'name', ''):
+                comprovante_url = reverse('relatorio_honorarios_comprovante', args=[t.id])
         except Exception:
             comprovante_url = ''
         linhas.append({
@@ -3175,6 +3178,33 @@ def relatorio_honorarios_exportar(request):
     writer.writerow([])
     writer.writerow(['Comissão (%)', 'Operador (%)', f"{int(COMISSAO_PERCENT*100)}%", f"{int(OPERADOR_PERCENT*100)}%", ''])
 
+    return response
+
+@lojista_login_required
+def relatorio_honorarios_comprovante(request, titulo_id: int):
+    """Entrega o comprovante associado ao título garantindo o vínculo com a empresa logada."""
+    empresa_id = request.session.get('empresa_id_sessao')
+    titulo = get_object_or_404(
+        Titulo.objects.select_related('devedor'),
+        id=titulo_id,
+        devedor__empresa_id=empresa_id
+    )
+    comprovante = titulo.comprovante
+    if not comprovante or not getattr(comprovante, 'name', ''):
+        raise Http404("Comprovante não disponível.")
+
+    try:
+        file_path = comprovante.path
+    except Exception:
+        raise Http404("Arquivo de comprovante inválido.")
+
+    if not os.path.exists(file_path):
+        raise Http404("Comprovante não encontrado no servidor.")
+
+    content_type, _ = mimetypes.guess_type(file_path)
+    response = FileResponse(open(file_path, 'rb'), content_type=content_type or 'application/octet-stream')
+    filename = os.path.basename(file_path)
+    response['Content-Disposition'] = f'inline; filename="{filename}"'
     return response
 
 # core/views.py
