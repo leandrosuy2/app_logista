@@ -1329,6 +1329,7 @@ def listar_devedores(request):
             "quantidade_titulos": row[6],  # Número total de títulos
             "nome_fantasia": row[7],
             "razao_social": row[8],
+            "display_nome": (row[2] or row[7] or row[8] or f"Devedor {row[1]}").strip(),
             "status_baixa": {
                 0: "Pendente",
                 2: "Quitado",

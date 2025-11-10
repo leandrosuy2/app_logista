@@ -133,7 +133,7 @@
             <tr>
               <td><b>{{ devedor.id }}</b></td>
               <td>
-                <div><b>{{ devedor.nome or devedor.nome_fantasia or devedor.razao_social }}</b></div>
+                <div><b>{{ devedor.display_nome }}</b></div>
                 {% if devedor.nome_fantasia %}<div class="text-muted" style="font-size:0.72rem;">{{ devedor.nome_fantasia }}</div>{% endif %}
               </td>
               <td><b>
