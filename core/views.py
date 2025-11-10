@@ -1339,13 +1339,29 @@ def listar_devedores(request):
         for row in rows
     ]
 
+    total_devedores = len(devedores)
+    total_pendentes = sum(1 for d in devedores if d["status_baixa"] == "Pendente")
+    total_quitados = sum(1 for d in devedores if d["status_baixa"] == "Quitado")
+    total_negociados = sum(1 for d in devedores if d["status_baixa"] == "Negociado")
+
     # Configura a paginação (10 itens por página)
     paginator = Paginator(devedores, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    context = {
+        'page_obj': page_obj,
+        'query': search_query,
+        'status': status_filter,
+        'total_devedores': total_devedores,
+        'total_pendentes': total_pendentes,
+        'total_quitados': total_quitados,
+        'total_negociados': total_negociados,
+        'status_options': ["Pendente", "Quitado", "Negociado"],
+    }
+
     # Renderiza o template com os dados e os filtros
-    return render(request, 'devedores_listar.html', {'page_obj': page_obj, 'query': search_query, 'status': status_filter})
+    return render(request, 'devedores_listar.html', context)
 
 
 
