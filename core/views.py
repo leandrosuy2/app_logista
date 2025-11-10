@@ -3164,7 +3164,7 @@ def relatorio_honorarios(request):
         doc = t.devedor.cpf or t.devedor.cnpj or ''
         empresa_obj = getattr(t.devedor, 'empresa', None) or t.empresa
         consultor_nome = getattr(empresa_obj, 'operador', '') if empresa_obj else ''
-        credor_disp = f"{empresa_obj.id} - {empresa_obj.nome_fantasia}" if empresa_obj else ''
+        credor_disp = empresa_obj.nome_fantasia if empresa_obj else ''
         venc_br = t.dataVencimento.strftime('%d/%m/%Y') if t.dataVencimento else ''
         pagto_br = t.data_baixa.strftime('%d/%m/%Y') if t.data_baixa else ''
         forma_str = forma_map.get(t.forma_pag_Id, '') if t.forma_pag_Id is not None else ''
@@ -3423,7 +3423,7 @@ def relatorio_honorarios_exportar(request):
     buffer.seek(0)
     response = HttpResponse(buffer.read(), content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="relatorio_honorarios.pdf"'
-    
+
     return response
 
 @lojista_login_required
