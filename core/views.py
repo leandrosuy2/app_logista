@@ -3193,12 +3193,21 @@ def relatorio_honorarios_comprovante(request, titulo_id: int):
     if not comprovante or not getattr(comprovante, 'name', ''):
         raise Http404("Comprovante não disponível.")
 
+    candidate_paths = []
     try:
-        file_path = comprovante.path
+        candidate_paths.append(comprovante.path)
     except Exception:
-        raise Http404("Arquivo de comprovante inválido.")
+        pass
 
-    if not os.path.exists(file_path):
+    if settings.MEDIA_ROOT:
+        candidate_paths.append(os.path.join(settings.MEDIA_ROOT, comprovante.name))
+
+    alt_media_root = getattr(settings, 'ALT_MEDIA_ROOT', '/home/app_operador/media')
+    if alt_media_root:
+        candidate_paths.append(os.path.join(alt_media_root, comprovante.name))
+
+    file_path = next((p for p in candidate_paths if p and os.path.exists(p)), None)
+    if not file_path:
         raise Http404("Comprovante não encontrado no servidor.")
 
     content_type, _ = mimetypes.guess_type(file_path)
