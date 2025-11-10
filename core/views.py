@@ -3019,6 +3019,12 @@ def relatorio_honorarios(request):
         pagto_br = t.data_baixa.strftime('%d/%m/%Y') if t.data_baixa else ''
         forma_str = forma_map.get(t.forma_pag_Id, '') if t.forma_pag_Id is not None else ''
         parc_str = f"{t.nPrc or 1}/{t.qtde_parcelas or 1}"
+        comprovante_url = ''
+        try:
+            if t.comprovante and getattr(t.comprovante, 'url', ''):
+                comprovante_url = t.comprovante.url
+        except Exception:
+            comprovante_url = ''
         linhas.append({
             'titulo_id': t.id,
             'devedor': t.devedor.nome or t.devedor.razao_social or f'#{t.devedor_id}',
@@ -3038,6 +3044,7 @@ def relatorio_honorarios(request):
             'pago_str': f"{pago:.2f}".replace('.', ','),
             'honorarios_str': f"{honor:.2f}".replace('.', ','),
             'liquido_str': f"{liquido:.2f}".replace('.', ','),
+            'comprovante_url': comprovante_url,
         })
 
     total_comissao = (total_quitado * COMISSAO_PERCENT).quantize(Decimal('0.01'))
