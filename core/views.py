@@ -434,6 +434,120 @@ def dashboard(request):
     page_number_negociados = request.GET.get('page_negociados')
     negociados_paginated = paginator_negociados.get_page(page_number_negociados)
 
+    # Buscar cobranças pendentes da tabela core_cobranca
+    cobrancas_pendentes = []
+    total_comissao_cobrancas = Decimal('0.00')
+    
+    try:
+        with connection.cursor() as cursor:
+            # Primeiro, verificar se a tabela existe e quais colunas tem
+            cursor.execute("""
+                SELECT COLUMN_NAME 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'core_cobranca'
+            """)
+            columns_info = [row[0] for row in cursor.fetchall()]
+            
+            if columns_info:  # Se a tabela existe
+                # Verificar se existe campo comissao ou valor_comissao
+                campo_comissao = 'comissao' if 'comissao' in columns_info else ('valor_comissao' if 'valor_comissao' in columns_info else None)
+                
+                # Montar query com campo de comissão se existir
+                campos_select = "id, data_cobranca, tipo_anexo, documento, link, created_at, updated_at, empresa_id"
+                if campo_comissao:
+                    campos_select += f", {campo_comissao}"
+                
+                # Buscar cobranças
+                cursor.execute(f"""
+                    SELECT {campos_select}
+                    FROM core_cobranca
+                    WHERE empresa_id = %s
+                    ORDER BY data_cobranca DESC, created_at DESC
+                """, [empresa_id_sessao])
+                
+                columns = [col[0] for col in cursor.description]
+                for row in cursor.fetchall():
+                    cobranca = dict(zip(columns, row))
+                    # Converter data_cobranca para string formatada se necessário
+                    if cobranca.get('data_cobranca'):
+                        if isinstance(cobranca['data_cobranca'], (date, datetime)):
+                            if isinstance(cobranca['data_cobranca'], datetime):
+                                data_obj = cobranca['data_cobranca'].date()
+                            else:
+                                data_obj = cobranca['data_cobranca']
+                            cobranca['data_cobranca'] = data_obj.strftime('%d/%m/%Y')
+                            cobranca['data_cobranca_raw'] = data_obj.strftime('%Y-%m-%d')  # Para cálculos
+                        elif isinstance(cobranca['data_cobranca'], str):
+                            # Se já for string, tentar converter e formatar
+                            try:
+                                if len(cobranca['data_cobranca']) == 10 and '-' in cobranca['data_cobranca']:
+                                    data_obj = datetime.strptime(cobranca['data_cobranca'], '%Y-%m-%d').date()
+                                    cobranca['data_cobranca'] = data_obj.strftime('%d/%m/%Y')
+                                    cobranca['data_cobranca_raw'] = data_obj.strftime('%Y-%m-%d')
+                            except:
+                                pass
+                    
+                    # Buscar valor da comissão
+                    # Se já existe campo de comissão na tabela, usar ele
+                    if campo_comissao and cobranca.get(campo_comissao):
+                        try:
+                            comissao_valor = Decimal(str(cobranca[campo_comissao]))
+                        except:
+                            comissao_valor = Decimal('0.00')
+                    else:
+                        # Calcular 15% dos títulos quitados desde a data da cobrança
+                        data_cobranca_raw = cobranca.get('data_cobranca_raw')
+                        if data_cobranca_raw:
+                            try:
+                                if isinstance(data_cobranca_raw, str):
+                                    data_cobranca_obj = datetime.strptime(data_cobranca_raw, '%Y-%m-%d').date()
+                                else:
+                                    data_cobranca_obj = data_cobranca_raw
+                            except:
+                                data_cobranca_obj = hoje
+                        else:
+                            # Tentar usar data_cobranca original
+                            data_cobranca = cobranca.get('data_cobranca')
+                            if data_cobranca:
+                                try:
+                                    if isinstance(data_cobranca, str) and '-' in data_cobranca:
+                                        data_cobranca_obj = datetime.strptime(data_cobranca, '%Y-%m-%d').date()
+                                    elif isinstance(data_cobranca, (date, datetime)):
+                                        if isinstance(data_cobranca, datetime):
+                                            data_cobranca_obj = data_cobranca.date()
+                                        else:
+                                            data_cobranca_obj = data_cobranca
+                                    else:
+                                        data_cobranca_obj = hoje
+                                except:
+                                    data_cobranca_obj = hoje
+                            else:
+                                data_cobranca_obj = hoje
+                        
+                        cursor.execute("""
+                            SELECT SUM(COALESCE(titulo.valorRecebido, 0)) * 0.15 AS comissao
+                            FROM titulo
+                            INNER JOIN devedores ON titulo.devedor_id = devedores.id
+                            WHERE devedores.empresa_id = %s
+                            AND titulo.statusBaixa = 2
+                            AND titulo.data_baixa >= %s
+                        """, [empresa_id_sessao, data_cobranca_obj])
+                        
+                        comissao_result = cursor.fetchone()
+                        comissao_valor = Decimal(str(comissao_result[0])) if comissao_result and comissao_result[0] else Decimal('0.00')
+                    
+                    cobranca['comissao'] = round(comissao_valor, 2)
+                    total_comissao_cobrancas += comissao_valor
+                    
+                    cobrancas_pendentes.append(cobranca)
+    except Exception as e:
+        # Se a tabela não existir ou houver erro, simplesmente não mostra cobranças
+        logger.error(f"Erro ao buscar cobranças: {str(e)}")
+        cobrancas_pendentes = []
+    
+    total_comissao_cobrancas = round(total_comissao_cobrancas, 2)
+
     # Contexto final
     context = {
         'titulos_pendentes': titulos_pendentes,
@@ -452,6 +566,8 @@ def dashboard(request):
         'negociados_hoje': negociados_hoje,
         'quitados_hoje_detalhes': quitados_hoje_detalhes_data,
         'negociados_hoje_detalhes': negociados_hoje_detalhes_data,
+        'cobrancas_pendentes': cobrancas_pendentes,
+        'total_comissao_cobrancas': total_comissao_cobrancas,
     }
 
     return render(request, 'dashboard.html', context)

@@ -879,6 +879,38 @@ body {
         </div>
     </div>
 
+    <!-- Card de Alerta de Cobranças Pendentes -->
+    {% if cobrancas_pendentes %}
+    <div class="row g-4 mt-2">
+        <div class="col-12">
+            <div class="card shadow-sm" style="border-left: 4px solid #dc3545; background: #fff3cd; border-radius: 8px;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-exclamation-triangle text-danger me-3" style="font-size: 2rem;"></i>
+                            <div>
+                                <h5 class="mb-1 text-danger">
+                                    <i class="fas fa-money-bill-wave me-2"></i>
+                                    Cobranças Pendentes
+                                </h5>
+                                <p class="mb-0 text-muted">
+                                    Existe(m) <strong>{{ cobrancas_pendentes|length }}</strong> cobrança(ões) pendente(s) para pagamento
+                                </p>
+                                <p class="mb-0 mt-2">
+                                    <strong>Total de Comissão: R$ {{ total_comissao_cobrancas|floatformat:2 }}</strong>
+                                </p>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-danger mt-2 mt-md-0" data-bs-toggle="modal" data-bs-target="#modalCobrancas">
+                            <i class="fas fa-eye me-2"></i>Ver Detalhes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Script para contagem animada -->
     <script>
     document.addEventListener("DOMContentLoaded", function () {
@@ -1065,6 +1097,93 @@ body {
         });
     });
     </script>
+
+    <!-- Modal para Cobranças Pendentes -->
+    <div class="modal fade" id="modalCobrancas" tabindex="-1" aria-labelledby="modalCobrancasLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="modalCobrancasLabel">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Cobranças Pendentes
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {% if cobrancas_pendentes %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Total de Comissão a Pagar:</strong> R$ {{ total_comissao_cobrancas|floatformat:2 }}
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Data da Cobrança</th>
+                                        <th>Tipo de Anexo</th>
+                                        <th>Comissão</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cobranca in cobrancas_pendentes %}
+                                    <tr>
+                                        <td>
+                                            {% if cobranca.data_cobranca %}
+                                                {{ cobranca.data_cobranca }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if cobranca.tipo_anexo == 'link' %}
+                                                <span class="badge bg-info">Link</span>
+                                            {% elif cobranca.tipo_anexo == 'documento' %}
+                                                <span class="badge bg-secondary">Documento</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ cobranca.tipo_anexo|default:"-" }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong class="text-success">R$ {{ cobranca.comissao|floatformat:2 }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if cobranca.link %}
+                                                <a href="{{ cobranca.link }}" target="_blank" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-external-link-alt me-1"></i>Abrir Link
+                                                </a>
+                                            {% endif %}
+                                            {% if cobranca.documento %}
+                                                <a href="{{ cobranca.documento }}" target="_blank" class="btn btn-sm btn-secondary">
+                                                    <i class="fas fa-file-download me-1"></i>Baixar
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th colspan="2" class="text-end">Total:</th>
+                                        <th class="text-success">R$ {{ total_comissao_cobrancas|floatformat:2 }}</th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Nenhuma cobrança pendente encontrada.
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Busca -->
     <div class="search-container">
