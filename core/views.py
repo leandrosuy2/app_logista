@@ -55,6 +55,7 @@ from openpyxl import Workbook
 from openpyxl.worksheet.datavalidation import DataValidation
 from functools import wraps
 from django.shortcuts import redirect
+from types import SimpleNamespace
 
 def minha_view(request):
     return redirect('https://lojista.intercred.com.br')
@@ -1381,8 +1382,12 @@ def adicionar_devedor(request):
         'nome_fantasia', 'nome_socio', 'cpf_socio', 'rg_socio', 'telefone',
         'telefone1', 'telefone2', 'telefone3', 'telefone4', 'telefone5',
         'telefone6', 'telefone7', 'telefone8', 'telefone9', 'telefone10',
-        'cep', 'endereco', 'bairro', 'uf', 'cidade', 'email1', 'email2'
+        'cep', 'endereco', 'bairro', 'uf', 'cidade', 'email1', 'email2',
+        'observacao'
     ]
+
+    initial_data = {field: '' for field in fields}
+    initial_tipo = 'F'
 
     if request.method == 'POST':
         data = request.POST
@@ -1397,11 +1402,21 @@ def adicionar_devedor(request):
 
         # Redireciona para a página de adicionar título para o devedor recém-criado
         return redirect('adicionar_titulo_pg_devedor', devedor_id=devedor.id)
+    else:
+        data = request.GET
+
+    for field in fields:
+        initial_data[field] = data.get(field, '')
+    initial_tipo = data.get('tipo_pessoa', 'F') or 'F'
+    initial_data['tipo_pessoa'] = initial_tipo
+    initial = SimpleNamespace(**initial_data)
 
     return render(request, 'devedores_adicionar.html', {
         'empresas': empresas,
         'fields': fields,
         'empresa_sessao': empresa_sessao,  # Passa a empresa da sessão
+        'initial': initial,
+        'initial_tipo': initial_tipo,
     })
 
 
