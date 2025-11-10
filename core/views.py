@@ -3138,9 +3138,8 @@ def relatorio_honorarios(request):
     if cpf_cnpj:
         titulos = titulos.filter(Q(devedor__cpf__icontains=cpf_cnpj) | Q(devedor__cnpj__icontains=cpf_cnpj))
 
-    # Comissão e operador
+    # Comissão
     COMISSAO_PERCENT = Decimal('0.15')  # 15%
-    OPERADOR_PERCENT = Decimal('0.25')  # 25% da comissão
 
     # Montagem de linhas
     linhas = []
@@ -3199,7 +3198,6 @@ def relatorio_honorarios(request):
         })
 
     total_comissao = (total_quitado * COMISSAO_PERCENT).quantize(Decimal('0.01'))
-    total_operador = (total_comissao * OPERADOR_PERCENT).quantize(Decimal('0.01'))
     total_liquido = (total_quitado - total_comissao).quantize(Decimal('0.01'))
 
     # Paginação
@@ -3229,10 +3227,8 @@ def relatorio_honorarios(request):
         'credores': credores,
         'total_quitado': total_quitado,
         'total_comissao': total_comissao,
-        'total_operador': total_operador,
         'total_liquido': total_liquido,
         'COMISSAO_PERCENT': int(COMISSAO_PERCENT * 100),
-        'OPERADOR_PERCENT': int(OPERADOR_PERCENT * 100),
         'export_url': export_url,
     }
     return render(request, 'relatorio_honorarios.html', context)
@@ -3240,7 +3236,7 @@ def relatorio_honorarios(request):
 
 @lojista_login_required
 def relatorio_honorarios_exportar(request):
-    """Exporta o relatório em CSV (compatível com Excel) respeitando os filtros."""
+    """Exporta o relatório em PDF respeitando os filtros."""
     empresa_id = request.session.get('empresa_id_sessao')
     if not empresa_id:
         return redirect('login')
@@ -3271,7 +3267,7 @@ def relatorio_honorarios_exportar(request):
 
     titulos = (
         Titulo.objects
-        .select_related('devedor', 'empresa')
+        .select_related('devedor', 'devedor__empresa', 'empresa')
         .filter(
             devedor__empresa_id=empresa_id,
             statusBaixa=2,
@@ -3281,23 +3277,18 @@ def relatorio_honorarios_exportar(request):
         )
     )
     if consultor:
-        titulos = titulos.filter(empresa__operador__icontains=consultor)
+        titulos = titulos.filter(devedor__empresa__operador__icontains=consultor)
     if credor_id and credor_id.isdigit():
-        titulos = titulos.filter(empresa_id=int(credor_id))
+        titulos = titulos.filter(devedor__empresa_id=int(credor_id))
     if devedor_nome:
         titulos = titulos.filter(devedor__nome__icontains=devedor_nome)
     if cpf_cnpj:
         titulos = titulos.filter(Q(devedor__cpf__icontains=cpf_cnpj) | Q(devedor__cnpj__icontains=cpf_cnpj))
 
     COMISSAO_PERCENT = Decimal('0.15')
-    OPERADOR_PERCENT = Decimal('0.25')
 
-    response = HttpResponse(content_type='text/csv; charset=utf-8')
-    response['Content-Disposition'] = 'attachment; filename="relatorio_honorarios.csv"'
-
-    writer = csv.writer(response, delimiter=';')
-    writer.writerow(['Devedor', 'Credor', 'Pago', 'Honorários', 'Líquido'])
-
+    # Preparar dados
+    linhas_dados = []
     total_quitado = Decimal('0')
     total_comissao = Decimal('0')
     total_liquido = Decimal('0')
@@ -3306,26 +3297,133 @@ def relatorio_honorarios_exportar(request):
         pago = Decimal(str(t.valorRecebido or 0))
         honor = (pago * COMISSAO_PERCENT).quantize(Decimal('0.01'))
         liquido = (pago - honor).quantize(Decimal('0.01'))
-        credor_display = f"{t.empresa.id} - {t.empresa.nome_fantasia}" if t.empresa else ''
-        writer.writerow([
-            (t.devedor.nome or t.devedor.razao_social or f'#{t.devedor_id}'),
+        empresa_obj = getattr(t.devedor, 'empresa', None) or t.empresa
+        credor_display = f"{empresa_obj.id} - {empresa_obj.nome_fantasia}" if empresa_obj else ''
+        devedor_nome_display = t.devedor.nome or t.devedor.razao_social or f'#{t.devedor_id}'
+        
+        # Formatar valores no padrão brasileiro (R$ 1.234,56)
+        pago_str = f"R$ {pago:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        honor_str = f"R$ {honor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        liquido_str = f"R$ {liquido:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        
+        linhas_dados.append([
+            devedor_nome_display,
             credor_display,
-            f"{pago:.2f}".replace('.', ','),
-            f"{honor:.2f}".replace('.', ','),
-            f"{liquido:.2f}".replace('.', ','),
+            pago_str,
+            honor_str,
+            liquido_str,
         ])
         total_quitado += pago
         total_comissao += honor
         total_liquido += liquido
 
-    # Totais
-    writer.writerow([])
-    writer.writerow(['Totais', '', f"{total_quitado:.2f}".replace('.', ','), f"{total_comissao:.2f}".replace('.', ','), f"{total_liquido:.2f}".replace('.', ',')])
-
-    # Rodapé informativo
-    writer.writerow([])
-    writer.writerow(['Comissão (%)', 'Operador (%)', f"{int(COMISSAO_PERCENT*100)}%", f"{int(OPERADOR_PERCENT*100)}%", ''])
-
+    # Criar PDF
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, 
+                            rightMargin=30, leftMargin=30,
+                            topMargin=30, bottomMargin=30)
+    
+    # Estilos
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        textColor=colors.HexColor('#212529'),
+        spaceAfter=20,
+        alignment=1,  # Center
+    )
+    
+    # Conteúdo
+    story = []
+    
+    # Título
+    story.append(Paragraph("Relatório de Honorários", title_style))
+    
+    # Informações do período
+    periodo_text = f"Período: {d_ini.strftime('%d/%m/%Y')} a {d_fim.strftime('%d/%m/%Y')}"
+    story.append(Paragraph(periodo_text, styles['Normal']))
+    story.append(Paragraph("<br/>", styles['Normal']))
+    
+    # Cabeçalho da tabela
+    header = [['Devedor', 'Credor', 'Pago', 'Honorários', 'Líquido']]
+    
+    # Estilo para cabeçalho
+    header_style = ParagraphStyle(
+        'HeaderStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        fontName='Helvetica-Bold',
+        textColor=colors.whitesmoke,
+    )
+    
+    # Dados - converter para Paragraph para melhor formatação
+    data = []
+    for row in header:
+        data.append([Paragraph(cell, header_style) for cell in row])
+    
+    for row in linhas_dados:
+        data.append([Paragraph(cell, styles['Normal']) for cell in row])
+    
+    # Linha de totais - formatar valores no padrão brasileiro
+    total_quitado_str = f"R$ {total_quitado:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    total_comissao_str = f"R$ {total_comissao:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    total_liquido_str = f"R$ {total_liquido:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    
+    data.append([
+        Paragraph('<b>TOTAIS</b>', styles['Normal']),
+        Paragraph('', styles['Normal']),
+        Paragraph(f"<b>{total_quitado_str}</b>", styles['Normal']),
+        Paragraph(f"<b>{total_comissao_str}</b>", styles['Normal']),
+        Paragraph(f"<b>{total_liquido_str}</b>", styles['Normal']),
+    ])
+    
+    # Criar tabela - ajustar larguras das colunas (largura útil ~490 pontos)
+    table = Table(data, colWidths=[140, 140, 90, 90, 90])
+    
+    # Estilo da tabela
+    table.setStyle(TableStyle([
+        # Cabeçalho
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#495057')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TOPPADDING', (0, 0), (-1, 0), 12),
+        # Linhas de dados
+        ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -2), 9),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f8f9fa')]),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 1), (-1, -2), 8),
+        ('BOTTOMPADDING', (0, 1), (-1, -2), 8),
+        # Linha de totais
+        ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#e9ecef')),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, -1), (-1, -1), 10),
+        ('TOPPADDING', (0, -1), (-1, -1), 12),
+        ('BOTTOMPADDING', (0, -1), (-1, -1), 12),
+    ]))
+    
+    story.append(table)
+    story.append(Paragraph("<br/>", styles['Normal']))
+    
+    # Informações adicionais
+    info_text = f"Comissão: {int(COMISSAO_PERCENT * 100)}% | Total de registros: {len(linhas_dados)}"
+    story.append(Paragraph(info_text, styles['Normal']))
+    
+    # Construir PDF
+    doc.build(story)
+    
+    # Preparar resposta
+    buffer.seek(0)
+    response = HttpResponse(buffer.read(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="relatorio_honorarios.pdf"'
+    
     return response
 
 @lojista_login_required

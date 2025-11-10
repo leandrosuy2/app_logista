@@ -91,7 +91,7 @@
       </div>
       <div class="filter-actions">
         <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Filtrar</button>
-        <a href="{{ export_url }}" class="btn btn-outline"><i class="fas fa-file-excel"></i> Exportar Excel</a>
+        <a href="{{ export_url }}" class="btn btn-outline"><i class="fas fa-file-pdf"></i> Exportar PDF</a>
       </div>
     </div>
   </form>
@@ -104,10 +104,6 @@
     <div class="summary-card">
       <div class="label">Comissão (Honorários)</div>
       <div class="value">R$ {{ total_comissao|floatformat:2 }}</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">Operador ({{ OPERADOR_PERCENT }}%)</div>
-      <div class="value">R$ {{ total_operador|floatformat:2 }}</div>
     </div>
     <div class="summary-card">
       <div class="label">Líquido</div>
@@ -224,10 +220,6 @@
     <div class="summary-card">
       <div class="label">Líquido</div>
       <div class="value">R$ {{ total_liquido|floatformat:2 }}</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">Operador ({{ OPERADOR_PERCENT }}%)</div>
-      <div class="value">R$ {{ total_operador|floatformat:2 }}</div>
     </div>
   </div>
 
