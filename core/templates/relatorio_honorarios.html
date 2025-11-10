@@ -144,7 +144,6 @@
                 data-pagto="{{ row.pagto_br }}"
                 data-forma="{{ row.forma }}"
                 data-parc="{{ row.parcelas }}"
-                data-principal="R$ {{ row.principal_str }}"
                 data-pago="R$ {{ row.pago_str }}"
                 data-honor="R$ {{ row.honorarios_str }}"
                 data-liquido="R$ {{ row.liquido_str }}">
@@ -308,18 +307,21 @@
         const btn = event.relatedTarget;
         if (!btn) return;
         const get = (attr) => btn.getAttribute(attr) || '';
-        modal.querySelector('#mDev').textContent = get('data-devedor');
-        modal.querySelector('#mDoc').textContent = get('data-documento');
-        modal.querySelector('#mCredor').textContent = get('data-credor');
-        modal.querySelector('#mCons').textContent = get('data-consultor');
-        modal.querySelector('#mVenc').textContent = get('data-venc');
-        modal.querySelector('#mPagto').textContent = get('data-pagto');
-        modal.querySelector('#mForma').textContent = get('data-forma');
-        modal.querySelector('#mParc').textContent = get('data-parc');
-        modal.querySelector('#mPrincipal').textContent = get('data-principal');
-        modal.querySelector('#mPago').textContent = get('data-pago');
-        modal.querySelector('#mHonor').textContent = get('data-honor');
-        modal.querySelector('#mLiq').textContent = get('data-liquido');
+        const setValue = (selector, attr) => {
+          const el = modal.querySelector(selector);
+          if (el) el.textContent = get(attr);
+        };
+        setValue('#mDev', 'data-devedor');
+        setValue('#mDoc', 'data-documento');
+        setValue('#mCredor', 'data-credor');
+        setValue('#mCons', 'data-consultor');
+        setValue('#mVenc', 'data-venc');
+        setValue('#mPagto', 'data-pagto');
+        setValue('#mForma', 'data-forma');
+        setValue('#mParc', 'data-parc');
+        setValue('#mPago', 'data-pago');
+        setValue('#mHonor', 'data-honor');
+        setValue('#mLiq', 'data-liquido');
       });
     });
   </script>
