@@ -111,6 +111,7 @@
             <th>Pago</th>
             <th>Honorários</th>
             <th>Líquido</th>
+            <th class="text-center">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -121,6 +122,23 @@
             <td>R$ {{ row.pago|floatformat:2 }}</td>
             <td>R$ {{ row.honorarios|floatformat:2 }}</td>
             <td>R$ {{ row.liquido|floatformat:2 }}</td>
+            <td class="text-center">
+              <button type="button" class="btn btn-outline btn-sm" data-bs-toggle="modal" data-bs-target="#modalHonorario"
+                data-devedor="{{ row.devedor }}"
+                data-documento="{{ row.documento }}"
+                data-credor="{{ row.credor_display }}"
+                data-consultor="{{ row.consultor }}"
+                data-venc="{{ row.venc_br }}"
+                data-pagto="{{ row.pagto_br }}"
+                data-forma="{{ row.forma }}"
+                data-parc="{{ row.parcelas }}"
+                data-principal="R$ {{ row.principal_str }}"
+                data-pago="R$ {{ row.pago_str }}"
+                data-honor="R$ {{ row.honorarios_str }}"
+                data-liquido="R$ {{ row.liquido_str }}">
+                <i class="fas fa-eye"></i>
+              </button>
+            </td>
           </tr>
           {% empty %}
           <tr>
@@ -198,6 +216,59 @@
       <div class="value">R$ {{ total_operador|floatformat:2 }}</div>
     </div>
   </div>
+
+  <!-- Modal Detalhes -->
+  <div class="modal fade" id="modalHonorario" tabindex="-1" aria-labelledby="modalHonorarioLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-secondary text-white">
+          <h5 class="modal-title" id="modalHonorarioLabel">Detalhes do título</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <p><strong>Devedor:</strong> <span id="mDev"></span></p>
+          <p><strong>Documento:</strong> <span id="mDoc"></span></p>
+          <p><strong>Credor:</strong> <span id="mCredor"></span></p>
+          <p><strong>Consultor:</strong> <span id="mCons"></span></p>
+          <p><strong>Venc.:</strong> <span id="mVenc"></span></p>
+          <p><strong>Pagto.:</strong> <span id="mPagto"></span></p>
+          <p><strong>Forma:</strong> <span id="mForma"></span></p>
+          <p><strong>Parc.:</strong> <span id="mParc"></span></p>
+          <hr>
+          <p><strong>Valor principal:</strong><br><span id="mPrincipal"></span></p>
+          <p><strong>Valor pago:</strong><br><span id="mPago"></span></p>
+          <p><strong>Honorários do credor:</strong><br><span id="mHonor"></span></p>
+          <p><strong>Valor líquido:</strong><br><span id="mLiq"></span></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      const modal = document.getElementById('modalHonorario');
+      modal.addEventListener('show.bs.modal', function (event) {
+        const btn = event.relatedTarget;
+        if (!btn) return;
+        const get = (attr) => btn.getAttribute(attr) || '';
+        modal.querySelector('#mDev').textContent = get('data-devedor');
+        modal.querySelector('#mDoc').textContent = get('data-documento');
+        modal.querySelector('#mCredor').textContent = get('data-credor');
+        modal.querySelector('#mCons').textContent = get('data-consultor');
+        modal.querySelector('#mVenc').textContent = get('data-venc');
+        modal.querySelector('#mPagto').textContent = get('data-pagto');
+        modal.querySelector('#mForma').textContent = get('data-forma');
+        modal.querySelector('#mParc').textContent = get('data-parc');
+        modal.querySelector('#mPrincipal').textContent = get('data-principal');
+        modal.querySelector('#mPago').textContent = get('data-pago');
+        modal.querySelector('#mHonor').textContent = get('data-honor');
+        modal.querySelector('#mLiq').textContent = get('data-liquido');
+      });
+    });
+  </script>
 </div>
 {% endblock %}
 

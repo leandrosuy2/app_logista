@@ -1074,9 +1074,9 @@ body {
                 <input type="text" name="query" class="search-input" placeholder="Buscar por nome, CPF, CNPJ, Nome Fantasia..." value="{{ query }}">
                 <button type="submit" class="search-btn">
                     <i class="fas fa-search me-2"></i> <span>Buscar</span>
-                </button>
-            </div>
-        </form>
+            </button>
+        </div>
+    </form>
     </div>
 
     <!-- Agenda de trabalho do dia - Pendentes -->
@@ -1085,46 +1085,46 @@ body {
         <div class="table-wrapper">
             <table class="custom-table">
                 <thead>
-                    <tr>
-                        <th>Devedor</th>
-                        <th>Credor</th>
-                        <th>Nome da Mãe</th>
-                        <th>CPF/CNPJ</th>
-                        <th class="text-center">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in agenda_pendentes_paginated %}
-                    <tr>
-                        <td><b>{{ item.nome }}</b></td>
-                        <td><b>{{ item.nome_fantasia_credor }}</b></td>
-                        <td><b>{{ item.nome_mae }}</b></td>
-                        <td><b>
-                            {% if item.cpf %}
-                                {{ item.cpf }}
-                            {% elif item.cnpj %}
-                                {{ item.cnpj }}
-                            {% else %}
-                                Não informado
-                            {% endif %}
-                            </b>
-                        </td>
-                        <td class="text-center">
+            <tr>
+                <th>Devedor</th>
+                <th>Credor</th>
+                <th>Nome da Mãe</th>
+                <th>CPF/CNPJ</th>
+                <th class="text-center">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in agenda_pendentes_paginated %}
+            <tr>
+                <td><b>{{ item.nome }}</b></td>
+                <td><b>{{ item.nome_fantasia_credor }}</b></td>
+                <td><b>{{ item.nome_mae }}</b></td>
+                <td><b>
+                    {% if item.cpf %}
+                        {{ item.cpf }}
+                    {% elif item.cnpj %}
+                        {{ item.cnpj }}
+                    {% else %}
+                        Não informado
+                    {% endif %}
+                    </b>
+                </td>
+                <td class="text-center">
                             <a href="{% url 'detalhes_devedor' item.id %}" target="_blank" class="btn-action btn-info">Visualizar</a>
                             <a href="{% url 'realizar_baixa' item.id %}" class="btn-action btn-success">Baixar</a>
-                            <button type="button"
+                    <button type="button"
                                     class="btn-action btn-secondary"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#modalFollowUps"
-                                    data-devedor="{{ item.devedor_id }}"
-                                    data-nome="{{ item.nome|escape }}">
-                                Follow-ups
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                            data-bs-toggle="modal"
+                            data-bs-target="#modalFollowUps"
+                            data-devedor="{{ item.devedor_id }}"
+                            data-nome="{{ item.nome|escape }}">
+                      Follow-ups
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
         </div>
     </div>
 
@@ -1179,7 +1179,7 @@ body {
                             data-bs-target="#modalFollowUps"
                             data-devedor="{{ agendamento.devedor_id }}"
                             data-nome="{{ agendamento.devedor__nome|escape }}">
-                        Follow-ups
+                      Follow-ups
                     </button>
                 </td>
             </tr>
@@ -1214,8 +1214,8 @@ body {
                 </div>
             </div>
             {% endfor %}
-                </tbody>
-            </table>
+        </tbody>
+    </table>
         </div>
     </div>
     {% else %}
@@ -1228,7 +1228,7 @@ body {
     <div class="table-container">
         <div class="table-wrapper">
             <table class="custom-table">
-                <thead>
+        <thead>
             <tr>
                 <th>Devedor</th>
                 <th>Empresa</th>
@@ -1254,21 +1254,21 @@ body {
                             data-bs-target="#modalFollowUps"
                             data-devedor="{{ titulo.devedor_id }}"
                             data-nome="{{ titulo.devedor_nome|escape }}">
-                        Follow-ups
+                      Follow-ups
                     </button>
                 </td>
             </tr>
             {% endfor %}
-                </tbody>
-            </table>
+        </tbody>
+    </table>
         </div>
     </div>
 
     <!-- Paginação -->
     <nav aria-label="Paginação de negociados em atraso">
         <ul class="pagination">
-            {% if negociados_paginated.has_previous %}
-            <li class="page-item">
+                {% if negociados_paginated.has_previous %}
+                <li class="page-item">
                 <a class="page-link" href="?page_negociados={{ negociados_paginated.previous_page_number }}" aria-label="Página anterior">
                     <i class="fas fa-chevron-left"></i> <span class="d-none d-sm-inline">Anterior</span>
                 </a>
@@ -1278,8 +1278,8 @@ body {
                 <span class="page-link">
                     <i class="fas fa-chevron-left"></i> <span class="d-none d-sm-inline">Anterior</span>
                 </span>
-            </li>
-            {% endif %}
+                </li>
+                {% endif %}
 
             {% if negociados_paginated.paginator.num_pages <= 7 %}
                 {% for num in negociados_paginated.paginator.page_range %}
@@ -1288,9 +1288,9 @@ body {
                         <span class="page-link">{{ num }}</span>
                     </li>
                     {% else %}
-                    <li class="page-item">
+                <li class="page-item">
                         <a class="page-link" href="?page_negociados={{ num }}">{{ num }}</a>
-                    </li>
+                </li>
                     {% endif %}
                 {% endfor %}
             {% else %}
@@ -1331,8 +1331,8 @@ body {
                 {% endif %}
             {% endif %}
 
-            {% if negociados_paginated.has_next %}
-            <li class="page-item">
+                {% if negociados_paginated.has_next %}
+                <li class="page-item">
                 <a class="page-link" href="?page_negociados={{ negociados_paginated.next_page_number }}" aria-label="Próxima página">
                     <span class="d-none d-sm-inline">Próxima </span><i class="fas fa-chevron-right"></i>
                 </a>
@@ -1342,10 +1342,10 @@ body {
                 <span class="page-link">
                     <span class="d-none d-sm-inline">Próxima </span><i class="fas fa-chevron-right"></i>
                 </span>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
     {% else %}
     <p class="text-muted">Nenhum título negociado em atraso encontrado.</p>
     {% endif %}
@@ -1374,8 +1374,8 @@ body {
                 <td><b>{{ cliente.created_at|date:"d/m/Y" }}</b></td>
             </tr>
             {% endfor %}
-                </tbody>
-            </table>
+        </tbody>
+    </table>
         </div>
     </div>
 </div>

@@ -2992,17 +2992,49 @@ def relatorio_honorarios(request):
     # Montagem de linhas
     linhas = []
     total_quitado = Decimal('0')
+    forma_map = {
+        0: "Pix",
+        1: "Dinheiro",
+        2: "Cartão de Débito",
+        3: "Cartão de Crédito",
+        4: "Cheque",
+        5: "Depósito em Conta",
+        6: "Pagamento na Loja",
+        7: "Boleto Bancário",
+        8: "Duplicata",
+    }
     for t in titulos:
         pago = Decimal(str(t.valorRecebido or 0))
         honor = (pago * COMISSAO_PERCENT).quantize(Decimal('0.01'))
         liquido = (pago - honor).quantize(Decimal('0.01'))
+        principal = Decimal(str(t.valor or 0)).quantize(Decimal('0.01'))
         total_quitado += pago
+        doc = t.devedor.cpf or t.devedor.cnpj or ''
+        consultor_nome = t.empresa.operador if t.empresa else ''
+        credor_disp = f"{t.empresa.id} - {t.empresa.nome_fantasia}" if t.empresa else ''
+        venc_br = t.dataVencimento.strftime('%d/%m/%Y') if t.dataVencimento else ''
+        pagto_br = t.data_baixa.strftime('%d/%m/%Y') if t.data_baixa else ''
+        forma_str = forma_map.get(t.forma_pag_Id, '') if t.forma_pag_Id is not None else ''
+        parc_str = f"{t.nPrc or 1}/{t.qtde_parcelas or 1}"
         linhas.append({
+            'titulo_id': t.id,
             'devedor': t.devedor.nome or t.devedor.razao_social or f'#{t.devedor_id}',
-            'credor_display': f"{t.empresa.id} - {t.empresa.nome_fantasia}" if t.empresa else '',
+            'documento': doc,
+            'credor_display': credor_disp,
+            'consultor': consultor_nome,
+            'venc_br': venc_br,
+            'pagto_br': pagto_br,
+            'forma': forma_str,
+            'parcelas': parc_str,
+            'principal': principal,
             'pago': pago,
             'honorarios': honor,
             'liquido': liquido,
+            # Strings formatadas para uso direto no modal (pt-BR)
+            'principal_str': f"{principal:.2f}".replace('.', ','),
+            'pago_str': f"{pago:.2f}".replace('.', ','),
+            'honorarios_str': f"{honor:.2f}".replace('.', ','),
+            'liquido_str': f"{liquido:.2f}".replace('.', ','),
         })
 
     total_comissao = (total_quitado * COMISSAO_PERCENT).quantize(Decimal('0.01'))
