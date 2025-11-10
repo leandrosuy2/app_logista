@@ -2966,7 +2966,7 @@ def relatorio_honorarios(request):
     # Usamos Titulo.join Devedor, Empresa para filtrar e exibir
     titulos = (
         Titulo.objects
-        .select_related('devedor', 'empresa')
+        .select_related('devedor', 'devedor__empresa', 'empresa')
         .filter(
             devedor__empresa_id=empresa_id,
             statusBaixa=2,
@@ -2977,9 +2977,11 @@ def relatorio_honorarios(request):
     )
 
     if consultor:
-        titulos = titulos.filter(empresa__operador__icontains=consultor)
+        # consultor ligado ao operador da empresa do devedor
+        titulos = titulos.filter(devedor__empresa__operador__icontains=consultor)
     if credor_id and credor_id.isdigit():
-        titulos = titulos.filter(empresa_id=int(credor_id))
+        # credor pela empresa do devedor (titulo.empresa pode ser nulo)
+        titulos = titulos.filter(devedor__empresa_id=int(credor_id))
     if devedor_nome:
         titulos = titulos.filter(devedor__nome__icontains=devedor_nome)
     if cpf_cnpj:
@@ -3010,8 +3012,9 @@ def relatorio_honorarios(request):
         principal = Decimal(str(t.valor or 0)).quantize(Decimal('0.01'))
         total_quitado += pago
         doc = t.devedor.cpf or t.devedor.cnpj or ''
-        consultor_nome = t.empresa.operador if t.empresa else ''
-        credor_disp = f"{t.empresa.id} - {t.empresa.nome_fantasia}" if t.empresa else ''
+        empresa_obj = getattr(t.devedor, 'empresa', None) or t.empresa
+        consultor_nome = getattr(empresa_obj, 'operador', '') if empresa_obj else ''
+        credor_disp = f"{empresa_obj.id} - {empresa_obj.nome_fantasia}" if empresa_obj else ''
         venc_br = t.dataVencimento.strftime('%d/%m/%Y') if t.dataVencimento else ''
         pagto_br = t.data_baixa.strftime('%d/%m/%Y') if t.data_baixa else ''
         forma_str = forma_map.get(t.forma_pag_Id, '') if t.forma_pag_Id is not None else ''
