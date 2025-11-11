@@ -99,6 +99,65 @@
   .btn-secondary { background: #6c757d; color: #fff; }
   .btn-secondary:hover { background: #5a6268; color: #fff; }
 
+  /* ========== CARDS (padrão dashboard) ========== */
+  .dashboard-card {
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    overflow: hidden;
+    position: relative;
+    background: #fff;
+    min-height: 100px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .dashboard-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #495057;
+  }
+  .card-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    position: relative;
+    z-index: 1;
+    min-height: 100px;
+  }
+  .card-info { flex: 1; min-width: 0; }
+  .card-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #6c757d;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .card-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.2;
+    color: #212529;
+    word-break: break-word;
+  }
+  .card-icon {
+    font-size: 2.5rem;
+    opacity: 0.15;
+    color: #495057;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+  }
+  .card-gradient-1::before { background: #28a745; } /* quitado */
+  .card-gradient-2::before { background: #17a2b8; } /* negociado */
+  .card-gradient-3::before { background: #ffc107; } /* em aberto */
+  .card-gradient-4::before { background: #dc3545; } /* pendente */
+
   /* ========== RESPONSIVIDADE ========== */
   @media (max-width: 768px) {
     .custom-table { font-size: 0.75rem; min-width: 700px; }
@@ -120,49 +179,52 @@
   <h1 class="text-center mb-3">Negociação do Devedor</h1>
 
   {# ====== Totais ====== #}
-  <div class="row mb-4">
-    <div class="col-md-3">
-      <div class="alert alert-success text-center">
-        <h5>
-          <i class="fas fa-check-circle"></i> Total Quitado
-          <span data-bs-toggle="tooltip" title="Valor total já pago.">
-            <i class="fas fa-info-circle text-muted"></i>
-          </span>
-        </h5>
-        <p><strong>R$ {{ total_quitado|floatformat:2 }}</strong></p>
+  <div class="row g-4 mb-4">
+    <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+      <div class="card dashboard-card card-gradient-1 shadow-sm">
+        <div class="card-content">
+          <div class="card-info">
+            <h6 class="card-title">Total Quitado</h6>
+            <p class="card-value mb-0">R$ {{ total_quitado|floatformat:2 }}</p>
+          </div>
+          <i class="fas fa-check-circle card-icon"></i>
+        </div>
       </div>
     </div>
 
-    <div class="col-md-3">
-      <div class="alert alert-info text-center">
-        <h5>
-          <i class="fas fa-handshake"></i> Total Negociado
-          <span data-bs-toggle="tooltip" title="Valor que está em processo de negociação.">
-            <i class="fas fa-info-circle text-muted"></i>
-          </span>
-        </h5>
-        <p><strong>R$ {{ total_negociado|floatformat:2 }}</strong></p>
+    <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+      <div class="card dashboard-card card-gradient-2 shadow-sm">
+        <div class="card-content">
+          <div class="card-info">
+            <h6 class="card-title">Total Negociado</h6>
+            <p class="card-value mb-0">R$ {{ total_negociado|floatformat:2 }}</p>
+          </div>
+          <i class="fas fa-handshake card-icon"></i>
+        </div>
       </div>
     </div>
 
-    {# NOVO: Total negociado em aberto #}
-   <div class="col-md-3">
-  <div class="alert alert-danger text-center">
-    <h5 class="mb-1"><i class="fas fa-hourglass-half"></i> Total Negociado em aberto</h5>
-    <p class="mb-0"><strong>R$ {{ total_negociado_em_aberto|default:0|floatformat:2 }}</strong></p>
-  </div>
-</div>
+    <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+      <div class="card dashboard-card card-gradient-3 shadow-sm">
+        <div class="card-content">
+          <div class="card-info">
+            <h6 class="card-title">Total Negociado em aberto</h6>
+            <p class="card-value mb-0">R$ {{ total_negociado_em_aberto|default:0|floatformat:2 }}</p>
+          </div>
+          <i class="fas fa-hourglass-half card-icon"></i>
+        </div>
+      </div>
+    </div>
 
-
-    <div class="col-md-3">
-      <div class="alert alert-warning text-center">
-        <h5>
-          <i class="fas fa-exclamation-triangle"></i> Total Pendente
-          <span data-bs-toggle="tooltip" title="Valor ainda não pago nem negociado.">
-            <i class="fas fa-info-circle text-muted"></i>
-          </span>
-        </h5>
-        <p><strong>R$ {{ total_pendente|floatformat:2 }}</strong></p>
+    <div class="col-lg-3 col-md-6 col-sm-6 col-12">
+      <div class="card dashboard-card card-gradient-4 shadow-sm">
+        <div class="card-content">
+          <div class="card-info">
+            <h6 class="card-title">Total Pendente</h6>
+            <p class="card-value mb-0">R$ {{ total_pendente|floatformat:2 }}</p>
+          </div>
+          <i class="fas fa-exclamation-triangle card-icon"></i>
+        </div>
       </div>
     </div>
   </div>
