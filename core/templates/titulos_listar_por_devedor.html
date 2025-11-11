@@ -294,9 +294,9 @@
                   <div class="modal-content">
                     <form method="POST" action="{% url 'quitar_parcela' titulo.id %}">
                       {% csrf_token %}
-                      <div class="modal-header">
+                      <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title" id="modalQuitarLabel{{ titulo.id }}">Quitar Entrada</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                       </div>
                       <div class="modal-body">
                         <p><strong>Título:</strong> {{ titulo.num_titulo }}</p>
@@ -420,9 +420,9 @@
                 <div class="modal fade" id="modalExcluir{{ titulo.id }}" tabindex="-1" aria-labelledby="modalExcluirLabel{{ titulo.id }}" aria-hidden="true">
                   <div class="modal-dialog"><div class="modal-content">
                     <form method="POST" action="{% url 'excluir_titulo' titulo.id %}">{% csrf_token %}
-                      <div class="modal-header">
+                      <div class="modal-header bg-danger text-white">
                         <h5 class="modal-title" id="modalExcluirLabel{{ titulo.id }}">Confirmar Exclusão</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                       </div>
                       <div class="modal-body">
                         <p>Tem certeza que deseja excluir o título <strong>{{ titulo.num_titulo }}</strong>?</p>
@@ -443,9 +443,9 @@
                   <div class="modal-dialog"><div class="modal-content">
                     <form method="POST" action="{% url 'quitar_parcela' titulo.id %}" onsubmit="return validarValorRecebido({{ titulo.id }}, {{ titulo.valor|floatformat:2 }});">
                       {% csrf_token %}
-                      <div class="modal-header">
+                      <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title" id="modalQuitarLabel{{ titulo.id }}">Quitar Parcela</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                       </div>
                       <div class="modal-body">
                         <p><strong>Título:</strong> {{ titulo.num_titulo }}</p>
