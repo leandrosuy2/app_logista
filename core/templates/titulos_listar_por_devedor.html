@@ -77,8 +77,11 @@
     font-weight: 600;
     font-size: 0.8rem;
   }
-  .custom-table tbody td.text-center {
-    white-space: normal;
+  .custom-table tbody td.text-center { white-space: nowrap; }
+  /* Reserva espaço para os botões ficarem lado a lado */
+  .custom-table thead th:last-child,
+  .custom-table tbody td.actions-cell {
+    min-width: 220px;
   }
 
   /* ========== BOTÕES ========== */
@@ -89,7 +92,13 @@
     font-weight: 600;
     border: none;
     margin: 0.1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    line-height: 1.2;
+    white-space: nowrap;
   }
+  .btn-action i { display: inline-block; }
   .btn-info { background: #17a2b8; color: #fff; }
   .btn-info:hover { background: #138496; color: #fff; }
   .btn-success { background: #28a745; color: #fff; }
@@ -274,7 +283,7 @@
                 </td>
                 <td>R$ {{ titulo.juros|floatformat:2 }}</td>
                 <td>{{ titulo.dias_atraso }}</td>
-                <td class="text-center">
+                <td class="text-center actions-cell">
                   {% if titulo.status_baixa != 2 %}
                     <button type="button" class="btn-action btn-primary" data-bs-toggle="modal" data-bs-target="#modalQuitar{{ titulo.id }}">
                       <i class="fas fa-check"></i> Quitar
@@ -394,7 +403,7 @@
                       <span class="badge bg-info text-dark">Negociado</span>
                     {% endif %}
                   </td>
-                  <td class="text-center">
+                  <td class="text-center actions-cell">
                     {% if titulo.status_baixa == 3 %}
                       <button type="button" class="btn-action btn-primary" data-bs-toggle="modal" data-bs-target="#modalQuitar{{ titulo.id }}">
                         <i class="fas fa-check"></i> Quitar
