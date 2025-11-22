@@ -3085,8 +3085,20 @@ def calcular_comissao_por_tabela(titulo):
     COMISSAO_PADRAO = Decimal('0.15')  # 15%
     
     try:
-        empresa_obj = getattr(titulo.devedor, 'empresa', None) or titulo.empresa
-        if not empresa_obj or not empresa_obj.plano:
+        # Tentar obter a empresa do devedor primeiro, depois do título
+        empresa_obj = None
+        if hasattr(titulo, 'devedor') and titulo.devedor:
+            if hasattr(titulo.devedor, 'empresa') and titulo.devedor.empresa:
+                empresa_obj = titulo.devedor.empresa
+        
+        if not empresa_obj and hasattr(titulo, 'empresa') and titulo.empresa:
+            empresa_obj = titulo.empresa
+        
+        if not empresa_obj:
+            return COMISSAO_PADRAO
+        
+        # Verificar se a empresa tem plano (tabela de remuneração)
+        if not hasattr(empresa_obj, 'plano') or not empresa_obj.plano:
             return COMISSAO_PADRAO
         
         tabela_remuneracao = empresa_obj.plano
@@ -3096,6 +3108,11 @@ def calcular_comissao_por_tabela(titulo):
             return COMISSAO_PADRAO
         
         dias_atraso = (titulo.data_baixa - titulo.dataVencimento).days
+        
+        # Se dias_atraso for negativo, significa que pagou antes do vencimento
+        # Nesse caso, usar a menor faixa disponível ou padrão
+        if dias_atraso < 0:
+            dias_atraso = 0
         
         # Buscar a faixa de dias correspondente na tabela
         # Primeiro tenta encontrar uma faixa exata (de_dias <= dias_atraso <= ate_dias)
@@ -3130,7 +3147,8 @@ def calcular_comissao_por_tabela(titulo):
             )
         
         if item_tabela.exists():
-            percentual = Decimal(str(item_tabela.first().percentual_remuneracao))
+            item = item_tabela.first()
+            percentual = Decimal(str(item.percentual_remuneracao))
             # Converter de percentual (ex: 40.00) para decimal (0.40)
             return percentual / Decimal('100')
         
@@ -3138,6 +3156,10 @@ def calcular_comissao_por_tabela(titulo):
         
     except Exception as e:
         # Em caso de erro, retorna o padrão
+        # Remover prints de debug em produção
+        import traceback
+        # print(f"Erro ao calcular comissão para título {getattr(titulo, 'id', 'N/A')}: {e}")
+        # print(traceback.format_exc())
         return COMISSAO_PADRAO
 
 
@@ -3181,9 +3203,10 @@ def relatorio_honorarios(request):
 
     # Query base: títulos quitados (statusBaixa=2) da empresa do lojista
     # Usamos Titulo.join Devedor, Empresa para filtrar e exibir
+    # IMPORTANTE: Incluir 'devedor__empresa__plano' no select_related para evitar queries extras
     titulos = (
         Titulo.objects
-        .select_related('devedor', 'devedor__empresa', 'empresa')
+        .select_related('devedor', 'devedor__empresa', 'devedor__empresa__plano', 'empresa', 'empresa__plano')
         .filter(
             devedor__empresa_id=empresa_id,
             statusBaixa=2,
@@ -3337,7 +3360,7 @@ def relatorio_honorarios_exportar(request):
 
     titulos = (
         Titulo.objects
-        .select_related('devedor', 'devedor__empresa', 'empresa')
+        .select_related('devedor', 'devedor__empresa', 'devedor__empresa__plano', 'empresa', 'empresa__plano')
         .filter(
             devedor__empresa_id=empresa_id,
             statusBaixa=2,
