@@ -3074,6 +3074,9 @@ from urllib.parse import urlencode
 from django.urls import reverse
 from django.http import FileResponse, Http404
 import mimetypes
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def calcular_comissao_por_tabela(titulo):
@@ -3083,6 +3086,10 @@ def calcular_comissao_por_tabela(titulo):
     """
     # Valor padrão se não houver tabela
     COMISSAO_PADRAO = Decimal('0.15')  # 15%
+    
+    # Log inicial para garantir que a função está sendo chamada
+    titulo_id = getattr(titulo, 'id', 'N/A')
+    logger.error(f"=== DEBUG COMISSÃO: Título {titulo_id} - Função chamada ===")
     
     try:
         # Tentar obter a empresa do devedor primeiro, depois do título
@@ -3095,7 +3102,7 @@ def calcular_comissao_por_tabela(titulo):
             empresa_obj = titulo.empresa
         
         if not empresa_obj:
-            print(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Sem empresa")
+            logger.error(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Sem empresa")
             return COMISSAO_PADRAO
         
         # Verificar se a empresa tem plano (tabela de remuneração)
@@ -3127,7 +3134,7 @@ def calcular_comissao_por_tabela(titulo):
             print(f"DEBUG: Erro ao buscar plano: {e}")
         
         if not plano_obj:
-            print(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Empresa {empresa_obj.id} sem plano")
+            logger.error(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Empresa {empresa_obj.id} sem plano")
             return COMISSAO_PADRAO
         
         tabela_remuneracao = plano_obj
@@ -3144,7 +3151,7 @@ def calcular_comissao_por_tabela(titulo):
         if dias_atraso < 0:
             dias_atraso = 0
         
-        print(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Dias atraso: {dias_atraso}, Tabela: {tabela_remuneracao.id if tabela_remuneracao else 'N/A'}")
+        logger.error(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Dias atraso: {dias_atraso}, Tabela: {tabela_remuneracao.id if tabela_remuneracao else 'N/A'}")
         
         # Buscar a faixa de dias correspondente na tabela
         # Primeiro tenta encontrar uma faixa exata (de_dias <= dias_atraso <= ate_dias)
@@ -3183,17 +3190,17 @@ def calcular_comissao_por_tabela(titulo):
             percentual = Decimal(str(item.percentual_remuneracao))
             # Converter de percentual (ex: 40.00) para decimal (0.40)
             resultado = percentual / Decimal('100')
-            print(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Percentual encontrado: {percentual}% = {resultado}")
+            logger.error(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Percentual encontrado: {percentual}% = {resultado}")
             return resultado
         
-        print(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Nenhuma faixa encontrada, usando padrão")
+        logger.error(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Nenhuma faixa encontrada, usando padrão")
         return COMISSAO_PADRAO
         
     except Exception as e:
         # Em caso de erro, retorna o padrão
         import traceback
-        print(f"DEBUG: Erro ao calcular comissão para título {getattr(titulo, 'id', 'N/A')}: {e}")
-        print(traceback.format_exc())
+        logger.error(f"DEBUG: Erro ao calcular comissão para título {getattr(titulo, 'id', 'N/A')}: {e}")
+        logger.error(traceback.format_exc())
         return COMISSAO_PADRAO
 
 
@@ -3284,6 +3291,7 @@ def relatorio_honorarios(request):
         honor = (pago * comissao_percent).quantize(Decimal('0.01'))
         liquido = (pago - honor).quantize(Decimal('0.01'))
         principal = Decimal(str(t.valor or 0)).quantize(Decimal('0.01'))
+        logger.error(f"LOOP: Título {t.id} - Pago: {pago}, Comissão%: {comissao_percent*100}%, Honor: {honor}")
         total_quitado += pago
         total_comissao += honor
         total_liquido += liquido
