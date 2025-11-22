@@ -3095,16 +3095,46 @@ def calcular_comissao_por_tabela(titulo):
             empresa_obj = titulo.empresa
         
         if not empresa_obj:
+            print(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Sem empresa")
             return COMISSAO_PADRAO
         
         # Verificar se a empresa tem plano (tabela de remuneração)
-        if not hasattr(empresa_obj, 'plano') or not empresa_obj.plano:
+        # Tentar acessar o plano de diferentes formas
+        plano_obj = None
+        try:
+            # Primeiro tentar acessar diretamente
+            if hasattr(empresa_obj, 'plano_id') and empresa_obj.plano_id:
+                # Se tem plano_id, buscar o plano diretamente
+                from .models import TabelaRemuneracao
+                try:
+                    plano_obj = TabelaRemuneracao.objects.get(id=empresa_obj.plano_id)
+                except:
+                    pass
+            
+            # Se não encontrou, tentar pelo relacionamento
+            if not plano_obj and hasattr(empresa_obj, 'plano'):
+                plano_obj = empresa_obj.plano
+                
+            # Se ainda não encontrou, forçar refresh
+            if not plano_obj:
+                try:
+                    from .models import Empresa
+                    empresa_refreshed = Empresa.objects.select_related('plano').get(id=empresa_obj.id)
+                    plano_obj = empresa_refreshed.plano if empresa_refreshed else None
+                except:
+                    pass
+        except Exception as e:
+            print(f"DEBUG: Erro ao buscar plano: {e}")
+        
+        if not plano_obj:
+            print(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Empresa {empresa_obj.id} sem plano")
             return COMISSAO_PADRAO
         
-        tabela_remuneracao = empresa_obj.plano
+        tabela_remuneracao = plano_obj
         
         # Calcular dias de atraso (data_baixa - dataVencimento)
         if not titulo.data_baixa or not titulo.dataVencimento:
+            print(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Sem data_baixa ou dataVencimento")
             return COMISSAO_PADRAO
         
         dias_atraso = (titulo.data_baixa - titulo.dataVencimento).days
@@ -3113,6 +3143,8 @@ def calcular_comissao_por_tabela(titulo):
         # Nesse caso, usar a menor faixa disponível ou padrão
         if dias_atraso < 0:
             dias_atraso = 0
+        
+        print(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Dias atraso: {dias_atraso}, Tabela: {tabela_remuneracao.id if tabela_remuneracao else 'N/A'}")
         
         # Buscar a faixa de dias correspondente na tabela
         # Primeiro tenta encontrar uma faixa exata (de_dias <= dias_atraso <= ate_dias)
@@ -3150,16 +3182,18 @@ def calcular_comissao_por_tabela(titulo):
             item = item_tabela.first()
             percentual = Decimal(str(item.percentual_remuneracao))
             # Converter de percentual (ex: 40.00) para decimal (0.40)
-            return percentual / Decimal('100')
+            resultado = percentual / Decimal('100')
+            print(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Percentual encontrado: {percentual}% = {resultado}")
+            return resultado
         
+        print(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Nenhuma faixa encontrada, usando padrão")
         return COMISSAO_PADRAO
         
     except Exception as e:
         # Em caso de erro, retorna o padrão
-        # Remover prints de debug em produção
         import traceback
-        # print(f"Erro ao calcular comissão para título {getattr(titulo, 'id', 'N/A')}: {e}")
-        # print(traceback.format_exc())
+        print(f"DEBUG: Erro ao calcular comissão para título {getattr(titulo, 'id', 'N/A')}: {e}")
+        print(traceback.format_exc())
         return COMISSAO_PADRAO
 
 
