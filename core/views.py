@@ -3144,6 +3144,8 @@ def relatorio_honorarios(request):
     # Montagem de linhas
     linhas = []
     total_quitado = Decimal('0')
+    total_comissao = Decimal('0')
+    total_liquido = Decimal('0')
     forma_map = {
         0: "Pix",
         1: "Dinheiro",
@@ -3161,6 +3163,8 @@ def relatorio_honorarios(request):
         liquido = (pago - honor).quantize(Decimal('0.01'))
         principal = Decimal(str(t.valor or 0)).quantize(Decimal('0.01'))
         total_quitado += pago
+        total_comissao += honor
+        total_liquido += liquido
         doc = t.devedor.cpf or t.devedor.cnpj or ''
         empresa_obj = getattr(t.devedor, 'empresa', None) or t.empresa
         consultor_nome = getattr(empresa_obj, 'operador', '') if empresa_obj else ''
@@ -3197,8 +3201,10 @@ def relatorio_honorarios(request):
             'comprovante_url': comprovante_url,
         })
 
-    total_comissao = (total_quitado * COMISSAO_PERCENT).quantize(Decimal('0.01'))
-    total_liquido = (total_quitado - total_comissao).quantize(Decimal('0.01'))
+    # Totais já foram acumulados no loop acima
+    # Garantir arredondamento final para evitar problemas de precisão
+    total_comissao = total_comissao.quantize(Decimal('0.01'))
+    total_liquido = total_liquido.quantize(Decimal('0.01'))
 
     # Paginação
     paginator = Paginator(linhas, 20)
