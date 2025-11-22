@@ -3079,129 +3079,74 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def calcular_comissao_por_tabela(titulo):
+def calcular_comissao_por_max_atraso_historico(devedor_id):
     """
-    Calcula a comissão (honorários) baseado na tabela de remuneração da empresa.
-    Retorna o percentual de comissão como Decimal.
-    """
-    # Valor padrão se não houver tabela
-    COMISSAO_PADRAO = Decimal('0.15')  # 15%
+    Calcula o percentual de comissão baseado no MAIOR ATRASO HISTÓRICO do devedor.
+    Retorna o percentual como Decimal (ex: 0.21 para 21%).
     
-    # Log inicial para garantir que a função está sendo chamada
-    titulo_id = getattr(titulo, 'id', 'N/A')
-    logger.error(f"=== DEBUG COMISSÃO: Título {titulo_id} - Função chamada ===")
+    Lógica:
+    - Busca TODOS os títulos já quitados do devedor
+    - Calcula o maior número de dias de atraso histórico
+    - Retorna o percentual baseado na faixa:
+      - 30-90 dias: 9%
+      - 91-180 dias: 15%
+      - 181-720 dias: 21%
+      - 721-1825 dias: 30%
+      - >= 1826 dias: 40%
+      - < 30 dias: 0%
+    """
+    from django.db import connection
     
     try:
-        # Tentar obter a empresa do devedor primeiro, depois do título
-        empresa_obj = None
-        if hasattr(titulo, 'devedor') and titulo.devedor:
-            if hasattr(titulo.devedor, 'empresa') and titulo.devedor.empresa:
-                empresa_obj = titulo.devedor.empresa
-        
-        if not empresa_obj and hasattr(titulo, 'empresa') and titulo.empresa:
-            empresa_obj = titulo.empresa
-        
-        if not empresa_obj:
-            logger.error(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Sem empresa")
-            return COMISSAO_PADRAO
-        
-        # Verificar se a empresa tem plano (tabela de remuneração)
-        # Tentar acessar o plano de diferentes formas
-        plano_obj = None
-        try:
-            # Primeiro tentar acessar diretamente
-            if hasattr(empresa_obj, 'plano_id') and empresa_obj.plano_id:
-                # Se tem plano_id, buscar o plano diretamente
-                from .models import TabelaRemuneracao
-                try:
-                    plano_obj = TabelaRemuneracao.objects.get(id=empresa_obj.plano_id)
-                except:
-                    pass
-            
-            # Se não encontrou, tentar pelo relacionamento
-            if not plano_obj and hasattr(empresa_obj, 'plano'):
-                plano_obj = empresa_obj.plano
-                
-            # Se ainda não encontrou, forçar refresh
-            if not plano_obj:
-                try:
-                    from .models import Empresa
-                    empresa_refreshed = Empresa.objects.select_related('plano').get(id=empresa_obj.id)
-                    plano_obj = empresa_refreshed.plano if empresa_refreshed else None
-                except:
-                    pass
-        except Exception as e:
-            print(f"DEBUG: Erro ao buscar plano: {e}")
-        
-        if not plano_obj:
-            logger.error(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Empresa {empresa_obj.id} sem plano")
-            return COMISSAO_PADRAO
-        
-        tabela_remuneracao = plano_obj
-        
-        # Calcular dias de atraso (data_baixa - dataVencimento)
-        if not titulo.data_baixa or not titulo.dataVencimento:
-            print(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Sem data_baixa ou dataVencimento")
-            return COMISSAO_PADRAO
-        
-        dias_atraso = (titulo.data_baixa - titulo.dataVencimento).days
-        
-        # Se dias_atraso for negativo, significa que pagou antes do vencimento
-        # Nesse caso, usar a menor faixa disponível ou padrão
-        if dias_atraso < 0:
-            dias_atraso = 0
-        
-        logger.error(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Dias atraso: {dias_atraso}, Tabela: {tabela_remuneracao.id if tabela_remuneracao else 'N/A'}")
-        
-        # Buscar a faixa de dias correspondente na tabela
-        # Primeiro tenta encontrar uma faixa exata (de_dias <= dias_atraso <= ate_dias)
-        item_tabela = (
-            TabelaRemuneracaoLista.objects
-            .filter(
-                tabela_remuneracao=tabela_remuneracao,
-                de_dias__lte=dias_atraso,
-                ate_dias__gte=dias_atraso
-            )
-            .order_by('de_dias')
-        )
-        
-        # Se não encontrar exato, buscar a faixa com maior de_dias que seja <= dias_atraso
-        # (a faixa mais próxima por baixo)
-        if not item_tabela.exists():
-            item_tabela = (
-                TabelaRemuneracaoLista.objects
-                .filter(
-                    tabela_remuneracao=tabela_remuneracao,
-                    de_dias__lte=dias_atraso
+        with connection.cursor() as cursor:
+            # CTE para calcular o maior atraso histórico do devedor
+            cursor.execute("""
+                WITH max_atraso AS (
+                    SELECT
+                        d.id AS devedor_id,
+                        MAX(GREATEST(
+                            0,
+                            DATEDIFF(
+                                t2.data_baixa,
+                                COALESCE(t2.dataVencimentoReal, t2.dataVencimento, t2.dataVencimentoPrimeira)
+                            )
+                        )) AS max_dias
+                    FROM titulo t2
+                    JOIN devedores d ON d.id = t2.devedor_id
+                    JOIN core_empresa e ON e.id = d.empresa_id
+                    WHERE t2.data_baixa IS NOT NULL
+                      AND e.status_empresa = 1
+                      AND d.id = %s
+                    GROUP BY d.id
                 )
-                .order_by('-de_dias')
-            )
-        
-        # Se ainda não encontrar (dias_atraso menor que todas as faixas), buscar a menor faixa disponível
-        if not item_tabela.exists():
-            item_tabela = (
-                TabelaRemuneracaoLista.objects
-                .filter(tabela_remuneracao=tabela_remuneracao)
-                .order_by('de_dias')
-            )
-        
-        if item_tabela.exists():
-            item = item_tabela.first()
-            percentual = Decimal(str(item.percentual_remuneracao))
-            # Converter de percentual (ex: 40.00) para decimal (0.40)
-            resultado = percentual / Decimal('100')
-            logger.error(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Percentual encontrado: {percentual}% = {resultado}")
-            return resultado
-        
-        logger.error(f"DEBUG: Título {getattr(titulo, 'id', 'N/A')} - Nenhuma faixa encontrada, usando padrão")
-        return COMISSAO_PADRAO
-        
+                SELECT max_dias
+                FROM max_atraso
+            """, [devedor_id])
+            
+            result = cursor.fetchone()
+            
+            if not result or result[0] is None:
+                return Decimal('0.00')  # Sem histórico, retorna 0%
+            
+            max_dias = int(result[0])
+            
+            # Determinar percentual baseado na faixa
+            if max_dias < 30:
+                return Decimal('0.00')  # 0%
+            elif max_dias <= 90:
+                return Decimal('0.09')  # 9%
+            elif max_dias <= 180:
+                return Decimal('0.15')  # 15%
+            elif max_dias <= 720:
+                return Decimal('0.21')  # 21%
+            elif max_dias <= 1825:
+                return Decimal('0.30')  # 30%
+            else:
+                return Decimal('0.40')  # 40%
+                
     except Exception as e:
-        # Em caso de erro, retorna o padrão
-        import traceback
-        logger.error(f"DEBUG: Erro ao calcular comissão para título {getattr(titulo, 'id', 'N/A')}: {e}")
-        logger.error(traceback.format_exc())
-        return COMISSAO_PADRAO
+        logger.error(f"Erro ao calcular comissão por max atraso histórico para devedor {devedor_id}: {e}")
+        return Decimal('0.00')
 
 
 @lojista_login_required
@@ -3286,12 +3231,11 @@ def relatorio_honorarios(request):
     }
     for t in titulos:
         pago = Decimal(str(t.valorRecebido or 0))
-        # Calcular comissão baseada na tabela de remuneração
-        comissao_percent = calcular_comissao_por_tabela(t)
+        # Calcular comissão baseada no MAIOR ATRASO HISTÓRICO do devedor
+        comissao_percent = calcular_comissao_por_max_atraso_historico(t.devedor_id)
         honor = (pago * comissao_percent).quantize(Decimal('0.01'))
         liquido = (pago - honor).quantize(Decimal('0.01'))
         principal = Decimal(str(t.valor or 0)).quantize(Decimal('0.01'))
-        logger.error(f"LOOP: Título {t.id} - Pago: {pago}, Comissão%: {comissao_percent*100}%, Honor: {honor}")
         total_quitado += pago
         total_comissao += honor
         total_liquido += liquido
@@ -3428,8 +3372,8 @@ def relatorio_honorarios_exportar(request):
 
     for t in titulos:
         pago = Decimal(str(t.valorRecebido or 0))
-        # Calcular comissão baseada na tabela de remuneração
-        comissao_percent = calcular_comissao_por_tabela(t)
+        # Calcular comissão baseada no MAIOR ATRASO HISTÓRICO do devedor
+        comissao_percent = calcular_comissao_por_max_atraso_historico(t.devedor_id)
         honor = (pago * comissao_percent).quantize(Decimal('0.01'))
         liquido = (pago - honor).quantize(Decimal('0.01'))
         empresa_obj = getattr(t.devedor, 'empresa', None) or t.empresa
