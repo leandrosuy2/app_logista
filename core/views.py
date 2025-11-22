@@ -453,16 +453,26 @@ def dashboard(request):
                 # Verificar se existe campo comissao ou valor_comissao
                 campo_comissao = 'comissao' if 'comissao' in columns_info else ('valor_comissao' if 'valor_comissao' in columns_info else None)
                 
+                # Verificar se existe campo pago
+                tem_campo_pago = 'pago' in columns_info
+                
                 # Montar query com campo de comissão se existir
                 campos_select = "id, data_cobranca, tipo_anexo, documento, link, created_at, updated_at, empresa_id"
                 if campo_comissao:
                     campos_select += f", {campo_comissao}"
+                if tem_campo_pago:
+                    campos_select += ", pago"
                 
-                # Buscar cobranças
+                # Montar filtro WHERE
+                filtro_where = "WHERE empresa_id = %s"
+                if tem_campo_pago:
+                    filtro_where += " AND (pago != 1 OR pago IS NULL)"
+                
+                # Buscar cobranças (apenas as não pagas)
                 cursor.execute(f"""
                     SELECT {campos_select}
                     FROM core_cobranca
-                    WHERE empresa_id = %s
+                    {filtro_where}
                     ORDER BY data_cobranca DESC, created_at DESC
                 """, [empresa_id_sessao])
                 
