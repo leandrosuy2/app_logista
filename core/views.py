@@ -3075,6 +3075,72 @@ from django.urls import reverse
 from django.http import FileResponse, Http404
 import mimetypes
 
+
+def calcular_comissao_por_tabela(titulo):
+    """
+    Calcula a comissão (honorários) baseado na tabela de remuneração da empresa.
+    Retorna o percentual de comissão como Decimal.
+    """
+    # Valor padrão se não houver tabela
+    COMISSAO_PADRAO = Decimal('0.15')  # 15%
+    
+    try:
+        empresa_obj = getattr(titulo.devedor, 'empresa', None) or titulo.empresa
+        if not empresa_obj or not empresa_obj.plano:
+            return COMISSAO_PADRAO
+        
+        tabela_remuneracao = empresa_obj.plano
+        
+        # Calcular dias de atraso (data_baixa - dataVencimento)
+        if not titulo.data_baixa or not titulo.dataVencimento:
+            return COMISSAO_PADRAO
+        
+        dias_atraso = (titulo.data_baixa - titulo.dataVencimento).days
+        
+        # Buscar a faixa de dias correspondente na tabela
+        # Primeiro tenta encontrar uma faixa exata (de_dias <= dias_atraso <= ate_dias)
+        item_tabela = (
+            TabelaRemuneracaoLista.objects
+            .filter(
+                tabela_remuneracao=tabela_remuneracao,
+                de_dias__lte=dias_atraso,
+                ate_dias__gte=dias_atraso
+            )
+            .order_by('de_dias')
+        )
+        
+        # Se não encontrar exato, buscar a faixa com maior de_dias que seja <= dias_atraso
+        # (a faixa mais próxima por baixo)
+        if not item_tabela.exists():
+            item_tabela = (
+                TabelaRemuneracaoLista.objects
+                .filter(
+                    tabela_remuneracao=tabela_remuneracao,
+                    de_dias__lte=dias_atraso
+                )
+                .order_by('-de_dias')
+            )
+        
+        # Se ainda não encontrar (dias_atraso menor que todas as faixas), buscar a menor faixa disponível
+        if not item_tabela.exists():
+            item_tabela = (
+                TabelaRemuneracaoLista.objects
+                .filter(tabela_remuneracao=tabela_remuneracao)
+                .order_by('de_dias')
+            )
+        
+        if item_tabela.exists():
+            percentual = Decimal(str(item_tabela.first().percentual_remuneracao))
+            # Converter de percentual (ex: 40.00) para decimal (0.40)
+            return percentual / Decimal('100')
+        
+        return COMISSAO_PADRAO
+        
+    except Exception as e:
+        # Em caso de erro, retorna o padrão
+        return COMISSAO_PADRAO
+
+
 @lojista_login_required
 def relatorio_honorarios(request):
     """
@@ -3138,9 +3204,6 @@ def relatorio_honorarios(request):
     if cpf_cnpj:
         titulos = titulos.filter(Q(devedor__cpf__icontains=cpf_cnpj) | Q(devedor__cnpj__icontains=cpf_cnpj))
 
-    # Comissão
-    COMISSAO_PERCENT = Decimal('0.15')  # 15%
-
     # Montagem de linhas
     linhas = []
     total_quitado = Decimal('0')
@@ -3159,7 +3222,9 @@ def relatorio_honorarios(request):
     }
     for t in titulos:
         pago = Decimal(str(t.valorRecebido or 0))
-        honor = (pago * COMISSAO_PERCENT).quantize(Decimal('0.01'))
+        # Calcular comissão baseada na tabela de remuneração
+        comissao_percent = calcular_comissao_por_tabela(t)
+        honor = (pago * comissao_percent).quantize(Decimal('0.01'))
         liquido = (pago - honor).quantize(Decimal('0.01'))
         principal = Decimal(str(t.valor or 0)).quantize(Decimal('0.01'))
         total_quitado += pago
@@ -3234,7 +3299,6 @@ def relatorio_honorarios(request):
         'total_quitado': total_quitado,
         'total_comissao': total_comissao,
         'total_liquido': total_liquido,
-        'COMISSAO_PERCENT': int(COMISSAO_PERCENT * 100),
         'export_url': export_url,
     }
     return render(request, 'relatorio_honorarios.html', context)
@@ -3291,8 +3355,6 @@ def relatorio_honorarios_exportar(request):
     if cpf_cnpj:
         titulos = titulos.filter(Q(devedor__cpf__icontains=cpf_cnpj) | Q(devedor__cnpj__icontains=cpf_cnpj))
 
-    COMISSAO_PERCENT = Decimal('0.15')
-
     # Preparar dados
     linhas_dados = []
     total_quitado = Decimal('0')
@@ -3301,7 +3363,9 @@ def relatorio_honorarios_exportar(request):
 
     for t in titulos:
         pago = Decimal(str(t.valorRecebido or 0))
-        honor = (pago * COMISSAO_PERCENT).quantize(Decimal('0.01'))
+        # Calcular comissão baseada na tabela de remuneração
+        comissao_percent = calcular_comissao_por_tabela(t)
+        honor = (pago * comissao_percent).quantize(Decimal('0.01'))
         liquido = (pago - honor).quantize(Decimal('0.01'))
         empresa_obj = getattr(t.devedor, 'empresa', None) or t.empresa
         credor_display = f"{empresa_obj.id} - {empresa_obj.nome_fantasia}" if empresa_obj else ''
