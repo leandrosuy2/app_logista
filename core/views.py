@@ -3405,6 +3405,12 @@ def relatorio_honorarios_exportar(request):
         total_quitado += pago
         total_comissao += honor
         total_liquido += liquido
+    
+    # Calcular comissão média ponderada (ou 0% se não houver títulos)
+    if total_quitado > 0:
+        comissao_media_percent = (total_comissao / total_quitado).quantize(Decimal('0.0001'))
+    else:
+        comissao_media_percent = Decimal('0')
 
     # Criar PDF
     buffer = BytesIO()
@@ -3502,7 +3508,8 @@ def relatorio_honorarios_exportar(request):
     story.append(Paragraph("<br/>", styles['Normal']))
     
     # Informações adicionais
-    info_text = f"Comissão: {int(COMISSAO_PERCENT * 100)}% | Total de registros: {len(linhas_dados)}"
+    comissao_percent_display = f"{float(comissao_media_percent * 100):.2f}".rstrip('0').rstrip('.')
+    info_text = f"Comissão média: {comissao_percent_display}% | Total de registros: {len(linhas_dados)}"
     story.append(Paragraph(info_text, styles['Normal']))
     
     # Construir PDF
