@@ -78,7 +78,10 @@
         <div class="col-md-6 pessoa-fisica">
           <label for="cpf" class="form-label required">CPF</label>
           <div class="input-group">
-            <input type="text" name="cpf" id="cpf" class="form-control" maxlength="14" placeholder="000.000.000-00" oninput="formatarCPF(this)" onblur="validarCPF()" value="{{ initial.cpf }}">
+            <input type="text" name="cpf" id="cpf" class="form-control" maxlength="14" placeholder="000.000.000-00" oninput="formatarCPF(this)" value="{{ initial.cpf }}">
+            <button type="button" class="btn btn-outline-primary" onclick="acaoBuscarCPF()">
+              Buscar
+            </button>
             <span class="input-group-text" id="cpfLoading" style="display:none;">
               <i class="fas fa-spinner fa-spin"></i>
             </span>
@@ -101,7 +104,10 @@
         <div class="col-md-6 pessoa-juridica" style="display:none;">
           <label for="cnpj" class="form-label required">CNPJ</label>
           <div class="input-group">
-            <input type="text" name="cnpj" id="cnpj" class="form-control" maxlength="18" placeholder="00.000.000/0000-00" oninput="formatarCNPJ(this)" onblur="validarCNPJ()" value="{{ initial.cnpj }}">
+            <input type="text" name="cnpj" id="cnpj" class="form-control" maxlength="18" placeholder="00.000.000/0000-00" oninput="formatarCNPJ(this)" value="{{ initial.cnpj }}">
+            <button type="button" class="btn btn-outline-primary" onclick="acaoBuscarCNPJ()">
+              Buscar
+            </button>
             <span class="input-group-text" id="cnpjLoading" style="display:none;">
               <i class="fas fa-spinner fa-spin"></i>
             </span>
@@ -228,6 +234,32 @@
     const cnpj= document.getElementById('cnpj');
     if (rz)   rz.required   = isReq;
     if (cnpj) cnpj.required = isReq;
+  }
+
+  function acaoBuscarCPF(){
+    const el = document.getElementById('cpf');
+    const err = document.getElementById('cpfError');
+    if (!el) return;
+    const dig = el.value.replace(/\D/g,'');
+    if (!dig.length || dig.length !== 11 || !calculaCPF(dig)) {
+      if (err) err.style.display = 'block';
+      return;
+    }
+    if (err) err.style.display = 'none';
+    buscarDadosCPF_Lemit(dig);
+  }
+
+  function acaoBuscarCNPJ(){
+    const el = document.getElementById('cnpj');
+    const err = document.getElementById('cnpjError');
+    if (!el) return;
+    const dig = el.value.replace(/\D/g,'');
+    if (!dig.length || dig.length !== 14 || !calculaCNPJ(dig)) {
+      if (err) err.style.display = 'block';
+      return;
+    }
+    if (err) err.style.display = 'none';
+    buscarDadosCNPJ_Lemit(dig);
   }
 
   function validarCPF(){
