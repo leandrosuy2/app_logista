@@ -72,10 +72,6 @@
       <div class="section-title"><i class="fas fa-id-card"></i>Identificação</div>
       <div class="row g-3">
         <div class="col-md-6 pessoa-fisica">
-          <label for="nome" class="form-label required">Nome completo</label>
-          <input type="text" name="nome" id="nome" class="form-control" placeholder="Ex: João da Silva" value="{{ initial.nome }}">
-        </div>
-        <div class="col-md-6 pessoa-fisica">
           <label for="cpf" class="form-label required">CPF</label>
           <div class="input-group">
             <input type="text" name="cpf" id="cpf" class="form-control" maxlength="14" placeholder="000.000.000-00" oninput="formatarCPF(this)" value="{{ initial.cpf }}">
@@ -87,6 +83,10 @@
             </span>
           </div>
           <small id="cpfError" class="text-danger" style="display:none;">CPF inválido</small>
+        </div>
+        <div class="col-md-6 pessoa-fisica">
+          <label for="nome" class="form-label required">Nome completo</label>
+          <input type="text" name="nome" id="nome" class="form-control" placeholder="Ex: João da Silva" value="{{ initial.nome }}">
         </div>
         <div class="col-md-6 pessoa-fisica">
           <label for="nome_mae" class="form-label">Nome da mãe</label>
