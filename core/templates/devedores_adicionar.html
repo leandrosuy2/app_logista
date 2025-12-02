@@ -227,6 +227,9 @@
     if(!dig.length){ if(err) err.style.display='none'; return true; }
     const ok = (dig.length===11 && calculaCPF(dig));
     if(err) err.style.display = ok ? 'none' : 'block';
+    if (ok) {
+      buscarDadosCPF_Lemit(dig);
+    }
     return ok;
   }
   function validarCNPJ(){
@@ -286,6 +289,68 @@
     let v=campo.value.replace(/\D/g,'');
     if(v.length>14) v=v.substring(0,14);
     campo.value = v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, "$1.$2.$3/$4-$5");
+  }
+
+  function buscarDadosCPF_Lemit(cpfNumerico){
+    if (!cpfNumerico || cpfNumerico.length !== 11) return;
+
+    fetch(`/api/devedores/buscar-por-cpf/?cpf=${cpfNumerico}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.erro) {
+          console.warn('Erro Lemit:', data.erro);
+          return;
+        }
+
+        if (data.nome) {
+          const nomeEl = document.getElementById('nome');
+          if (nomeEl && !nomeEl.value) nomeEl.value = data.nome;
+        }
+        if (data.nome_mae) {
+          const maeEl = document.getElementById('nome_mae');
+          if (maeEl && !maeEl.value) maeEl.value = data.nome_mae;
+        }
+        if (data.cep) {
+          const cepEl = document.getElementById('cep');
+          if (cepEl && !cepEl.value) cepEl.value = data.cep;
+        }
+        if (data.endereco) {
+          const endEl = document.getElementById('endereco');
+          if (endEl && !endEl.value) endEl.value = data.endereco;
+        }
+        if (data.bairro) {
+          const bairroEl = document.getElementById('bairro');
+          if (bairroEl && !bairroEl.value) bairroEl.value = data.bairro;
+        }
+        if (data.cidade) {
+          const cidadeEl = document.getElementById('cidade');
+          if (cidadeEl && !cidadeEl.value) cidadeEl.value = data.cidade;
+        }
+        if (data.uf) {
+          const ufEl = document.getElementById('uf');
+          if (ufEl && !ufEl.value) ufEl.value = data.uf;
+        }
+
+        if (Array.isArray(data.telefones)) {
+          for (let i = 0; i < 10; i++) {
+            const telVal = data.telefones[i];
+            const telEl = document.getElementById(`telefone${i+1}`);
+            if (telEl && telVal && !telEl.value) {
+              telEl.value = telVal;
+            }
+          }
+        }
+
+        if (Array.isArray(data.emails)) {
+          const email1 = document.getElementById('email1');
+          const email2 = document.getElementById('email2');
+          if (email1 && data.emails[0] && !email1.value) email1.value = data.emails[0];
+          if (email2 && data.emails[1] && !email2.value) email2.value = data.emails[1];
+        }
+      })
+      .catch(err => {
+        console.error('Erro ao consultar Lemit:', err);
+      });
   }
 
   document.addEventListener('DOMContentLoaded', function(){

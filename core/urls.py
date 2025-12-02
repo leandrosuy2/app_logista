@@ -92,6 +92,8 @@ urlpatterns = [
      path('finalizar-titulo/<int:titulo_id>/', views.finalizar_titulo, name='finalizar_titulo'),
      path('quitar-parcela/<int:titulo_id>/', views.quitar_parcela, name='quitar_parcela'),
      path('titulos/quitados/', views.quitados_listar, name='quitados_listar'),
+     # API interna para buscar dados na Lemit pelo CPF
+     path('api/devedores/buscar-por-cpf/', views.consultar_cpf_lemit, name='consultar_cpf_lemit'),
      
      #Anexar e baixar contrato
      path('anexar-contrato/<int:titulo_id>/', views.anexar_contrato, name='anexar_contrato'),

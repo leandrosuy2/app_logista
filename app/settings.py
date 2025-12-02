@@ -23,6 +23,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-ql6nn)=f(@3@6^2qhj8l4mm9i%nhp@w19=8uu)pg%o6$7g(fq^'
 
+# Token da Lemit para consultas por CPF
+# Em produção, prefira definir LEMIT_TOKEN como variável de ambiente.
+LEMIT_TOKEN = os.getenv("LEMIT_TOKEN", "ihf97GeOfLQByLgY9YJT3viKoVuIdzhaC0nbjpQE")
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 

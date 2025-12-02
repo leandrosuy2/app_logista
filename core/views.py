@@ -162,6 +162,8 @@ def format_whatsapp_number(phone):
 # views.py (topo)
 from django.http import JsonResponse, Http404
 from django.utils.timezone import now, localtime
+from django.conf import settings
+import requests
 
 from .models import Titulo, Agendamento, FollowUp, Devedor  # <— garante Devedor aqui
 
@@ -2171,6 +2173,91 @@ def consultar_com_espera(cnpj):
     time.sleep(5)  # Espera 5 segundos entre as consultas
     return consultar_cnpj_via_scraping(cnpj)
 
+
+@lojista_login_required
+def consultar_cpf_lemit(request):
+    """
+    Consulta dados de pessoa física na Lemit a partir do CPF.
+    Espera receber ?cpf=00000000000 (somente dígitos).
+    """
+    cpf = request.GET.get("cpf", "").strip()
+    if not cpf:
+        return JsonResponse({"erro": "CPF não fornecido"}, status=400)
+
+    cpf_numerico = "".join(filter(str.isdigit, cpf))
+    if len(cpf_numerico) != 11:
+        return JsonResponse({"erro": "CPF inválido"}, status=400)
+
+    token = getattr(settings, "LEMIT_TOKEN", None)
+    if not token:
+        return JsonResponse({"erro": "Token da Lemit não configurado"}, status=500)
+
+    try:
+        # URL de consulta de pessoa física por CPF na Lemit
+        url = f"https://api.lemit.com.br/api/v1/consulta/pessoa/{cpf_numerico}"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+
+        resp = requests.get(url, headers=headers, timeout=15)
+        if resp.status_code != 200:
+            return JsonResponse(
+                {"erro": "Erro ao consultar dados na Lemit", "status_code": resp.status_code},
+                status=resp.status_code,
+            )
+
+        body = resp.json() or {}
+        pessoa = body.get("pessoa") or {}
+
+        # Telefones: pega os celulares/fixos em ordem de ranking
+        celulares = pessoa.get("celulares") or []
+        fixos = pessoa.get("fixos") or []
+
+        def monta_tel(item):
+            try:
+                return f"({item.get('ddd')}) {str(item.get('numero')).strip()}"
+            except Exception:
+                return ""
+
+        telefones = []
+        for item in sorted(celulares, key=lambda x: x.get("ranking", 999)):
+            tel = monta_tel(item)
+            if tel:
+                telefones.append(tel)
+        for item in sorted(fixos, key=lambda x: x.get("ranking", 999)):
+            tel = monta_tel(item)
+            if tel:
+                telefones.append(tel)
+
+        # Emails
+        emails_lista = pessoa.get("emails") or []
+        emails = [e.get("email") for e in sorted(emails_lista, key=lambda x: x.get("ranking", 999)) if e.get("email")]
+
+        # Endereço principal (ranking 1)
+        enderecos = pessoa.get("enderecos") or []
+        endereco_principal = None
+        if enderecos:
+            endereco_principal = sorted(enderecos, key=lambda x: x.get("ranking", 999))[0]
+
+        resultado = {
+            "nome": pessoa.get("nome"),
+            "nome_mae": pessoa.get("nome_mae"),
+            "rg": None,  # API não retornou RG no exemplo
+            "cep": (endereco_principal or {}).get("cep"),
+            "endereco": (endereco_principal or {}).get("endereco"),
+            "bairro": (endereco_principal or {}).get("bairro"),
+            "cidade": (endereco_principal or {}).get("cidade"),
+            "uf": (endereco_principal or {}).get("uf"),
+            "telefones": telefones,
+            "emails": emails,
+        }
+
+        return JsonResponse(resultado)
+    except requests.Timeout:
+        return JsonResponse({"erro": "Tempo de resposta excedido na Lemit"}, status=504)
+    except Exception as e:
+        return JsonResponse({"erro": f"Falha na integração com a Lemit: {str(e)}"}, status=500)
 
 
 @lojista_login_required
