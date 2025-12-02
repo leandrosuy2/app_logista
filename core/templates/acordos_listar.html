@@ -90,7 +90,7 @@
         {% endif %}
       {% endif %}
 
-      {% if parcela.status_baixa in (2,3) %}
+      {% if parcela.status_baixa == 2 or parcela.status_baixa == 3 %}
         <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalContrato"
                 data-id="{{ titulo.titulo_id }}">Anexar Contrato</button>
         {% if titulo.contrato %}

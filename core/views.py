@@ -455,16 +455,26 @@ def dashboard(request):
                 # Verificar se existe campo comissao ou valor_comissao
                 campo_comissao = 'comissao' if 'comissao' in columns_info else ('valor_comissao' if 'valor_comissao' in columns_info else None)
                 
+                # Verificar se existe campo pago
+                tem_campo_pago = 'pago' in columns_info
+                
                 # Montar query com campo de comissão se existir
                 campos_select = "id, data_cobranca, tipo_anexo, documento, link, created_at, updated_at, empresa_id"
                 if campo_comissao:
                     campos_select += f", {campo_comissao}"
+                if tem_campo_pago:
+                    campos_select += ", pago"
                 
-                # Buscar cobranças
+                # Montar filtro WHERE
+                filtro_where = "WHERE empresa_id = %s"
+                if tem_campo_pago:
+                    filtro_where += " AND (pago != 1 OR pago IS NULL)"
+                
+                # Buscar cobranças (apenas as não pagas)
                 cursor.execute(f"""
                     SELECT {campos_select}
                     FROM core_cobranca
-                    WHERE empresa_id = %s
+                    {filtro_where}
                     ORDER BY data_cobranca DESC, created_at DESC
                 """, [empresa_id_sessao])
                 
@@ -3482,6 +3492,12 @@ def relatorio_honorarios_exportar(request):
         total_quitado += pago
         total_comissao += honor
         total_liquido += liquido
+    
+    # Calcular comissão média ponderada (ou 0% se não houver títulos)
+    if total_quitado > 0:
+        comissao_media_percent = (total_comissao / total_quitado).quantize(Decimal('0.0001'))
+    else:
+        comissao_media_percent = Decimal('0')
 
     # Criar PDF
     buffer = BytesIO()
@@ -3579,7 +3595,8 @@ def relatorio_honorarios_exportar(request):
     story.append(Paragraph("<br/>", styles['Normal']))
     
     # Informações adicionais
-    info_text = f"Comissão: {int(COMISSAO_PERCENT * 100)}% | Total de registros: {len(linhas_dados)}"
+    comissao_percent_display = f"{float(comissao_media_percent * 100):.2f}".rstrip('0').rstrip('.')
+    info_text = f"Comissão média: {comissao_percent_display}% | Total de registros: {len(linhas_dados)}"
     story.append(Paragraph(info_text, styles['Normal']))
     
     # Construir PDF
