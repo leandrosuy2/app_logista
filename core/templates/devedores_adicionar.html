@@ -77,7 +77,12 @@
         </div>
         <div class="col-md-6 pessoa-fisica">
           <label for="cpf" class="form-label required">CPF</label>
-          <input type="text" name="cpf" id="cpf" class="form-control" maxlength="14" placeholder="000.000.000-00" oninput="formatarCPF(this)" onblur="validarCPF()" value="{{ initial.cpf }}">
+          <div class="input-group">
+            <input type="text" name="cpf" id="cpf" class="form-control" maxlength="14" placeholder="000.000.000-00" oninput="formatarCPF(this)" onblur="validarCPF()" value="{{ initial.cpf }}">
+            <span class="input-group-text" id="cpfLoading" style="display:none;">
+              <i class="fas fa-spinner fa-spin"></i>
+            </span>
+          </div>
           <small id="cpfError" class="text-danger" style="display:none;">CPF inválido</small>
         </div>
         <div class="col-md-6 pessoa-fisica">
@@ -95,7 +100,12 @@
         </div>
         <div class="col-md-6 pessoa-juridica" style="display:none;">
           <label for="cnpj" class="form-label required">CNPJ</label>
-          <input type="text" name="cnpj" id="cnpj" class="form-control" maxlength="18" placeholder="00.000.000/0000-00" oninput="formatarCNPJ(this)" onblur="validarCNPJ()" value="{{ initial.cnpj }}">
+          <div class="input-group">
+            <input type="text" name="cnpj" id="cnpj" class="form-control" maxlength="18" placeholder="00.000.000/0000-00" oninput="formatarCNPJ(this)" onblur="validarCNPJ()" value="{{ initial.cnpj }}">
+            <span class="input-group-text" id="cnpjLoading" style="display:none;">
+              <i class="fas fa-spinner fa-spin"></i>
+            </span>
+          </div>
           <small id="cnpjError" class="text-danger" style="display:none;">CNPJ inválido</small>
         </div>
         <div class="col-md-6 pessoa-juridica" style="display:none;">
@@ -239,6 +249,9 @@
     if(!dig.length){ if(err) err.style.display='none'; return true; }
     const ok = (dig.length===14 && calculaCNPJ(dig));
     if(err) err.style.display = ok ? 'none' : 'block';
+    if (ok) {
+      buscarDadosCNPJ_Lemit(dig);
+    }
     return ok;
   }
   function validarCPFSocio(){
@@ -293,6 +306,9 @@
 
   function buscarDadosCPF_Lemit(cpfNumerico){
     if (!cpfNumerico || cpfNumerico.length !== 11) return;
+
+    const loading = document.getElementById('cpfLoading');
+    if (loading) loading.style.display = 'inline-flex';
 
     fetch(`/api/devedores/buscar-por-cpf/?cpf=${cpfNumerico}`)
       .then(r => r.json())
@@ -350,6 +366,81 @@
       })
       .catch(err => {
         console.error('Erro ao consultar Lemit:', err);
+      })
+      .finally(() => {
+        if (loading) loading.style.display = 'none';
+      });
+  }
+
+  function buscarDadosCNPJ_Lemit(cnpjNumerico){
+    if (!cnpjNumerico || cnpjNumerico.length !== 14) return;
+
+    const loading = document.getElementById('cnpjLoading');
+    if (loading) loading.style.display = 'inline-flex';
+
+    fetch(`/api/devedores/buscar-por-cnpj/?cnpj=${cnpjNumerico}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.erro) {
+          console.warn('Erro Lemit (CNPJ):', data.erro);
+          return;
+        }
+
+        if (data.razao_social) {
+          const rz = document.getElementById('razao_social');
+          if (rz && !rz.value) rz.value = data.razao_social;
+        }
+        if (data.nome_fantasia) {
+          const nf = document.getElementById('nome_fantasia');
+          if (nf && !nf.value) nf.value = data.nome_fantasia;
+        }
+        if (data.nome_socio) {
+          const ns = document.getElementById('nome_socio');
+          if (ns && !ns.value) ns.value = data.nome_socio;
+        }
+        if (data.cep) {
+          const cepEl = document.getElementById('cep');
+          if (cepEl && !cepEl.value) cepEl.value = data.cep;
+        }
+        if (data.endereco) {
+          const endEl = document.getElementById('endereco');
+          if (endEl && !endEl.value) endEl.value = data.endereco;
+        }
+        if (data.bairro) {
+          const bairroEl = document.getElementById('bairro');
+          if (bairroEl && !bairroEl.value) bairroEl.value = data.bairro;
+        }
+        if (data.cidade) {
+          const cidadeEl = document.getElementById('cidade');
+          if (cidadeEl && !cidadeEl.value) cidadeEl.value = data.cidade;
+        }
+        if (data.uf) {
+          const ufEl = document.getElementById('uf');
+          if (ufEl && !ufEl.value) ufEl.value = data.uf;
+        }
+
+        if (Array.isArray(data.telefones)) {
+          for (let i = 0; i < 10; i++) {
+            const telVal = data.telefones[i];
+            const telEl = document.getElementById(`telefone${i+1}`);
+            if (telEl && telVal && !telEl.value) {
+              telEl.value = telVal;
+            }
+          }
+        }
+
+        if (Array.isArray(data.emails)) {
+          const email1 = document.getElementById('email1');
+          const email2 = document.getElementById('email2');
+          if (email1 && data.emails[0] && !email1.value) email1.value = data.emails[0];
+          if (email2 && data.emails[1] && !email2.value) email2.value = data.emails[1];
+        }
+      })
+      .catch(err => {
+        console.error('Erro ao consultar Lemit (CNPJ):', err);
+      })
+      .finally(() => {
+        if (loading) loading.style.display = 'none';
       });
   }
 

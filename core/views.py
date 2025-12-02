@@ -2271,6 +2271,85 @@ def consultar_cpf_lemit(request):
 
 
 @lojista_login_required
+def consultar_cnpj_lemit(request):
+    """
+    Consulta dados de empresa na Lemit a partir do CNPJ.
+    Espera receber ?cnpj=00000000000000 (somente dígitos).
+    """
+    cnpj = request.GET.get("cnpj", "").strip()
+    if not cnpj:
+        return JsonResponse({"erro": "CNPJ não fornecido"}, status=400)
+
+    cnpj_numerico = "".join(filter(str.isdigit, cnpj))
+    if len(cnpj_numerico) != 14:
+        return JsonResponse({"erro": "CNPJ inválido"}, status=400)
+
+    token = getattr(settings, "LEMIT_TOKEN", None)
+    if not token:
+        return JsonResponse({"erro": "Token da Lemit não configurado"}, status=500)
+
+    try:
+        url = f"https://api.lemit.com.br/api/v1/consulta/empresa/{cnpj_numerico}"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+
+        resp = requests.get(url, headers=headers, timeout=15)
+        if resp.status_code != 200:
+            return JsonResponse(
+                {"erro": "Erro ao consultar dados de empresa na Lemit", "status_code": resp.status_code},
+                status=resp.status_code,
+            )
+
+        body = resp.json() or {}
+        empresa = body.get("empresa") or body  # depende do formato real da API
+
+        # Endereço principal
+        enderecos = empresa.get("enderecos") or []
+        endereco_principal = None
+        if enderecos:
+            endereco_principal = sorted(enderecos, key=lambda x: x.get("ranking", 999))[0]
+
+        # Telefones / emails
+        telefones = []
+        for lista_nome in ("telefones", "celulares", "fixos"):
+            itens = empresa.get(lista_nome) or []
+            for item in sorted(itens, key=lambda x: x.get("ranking", 999)):
+                ddd = item.get("ddd")
+                numero = item.get("numero")
+                if ddd and numero:
+                    telefones.append(f"({ddd}) {str(numero).strip()}")
+
+        emails_lista = empresa.get("emails") or []
+        emails = [e.get("email") for e in sorted(emails_lista, key=lambda x: x.get("ranking", 999)) if e.get("email")]
+
+        # Sócios
+        socios = empresa.get("participacao_societaria") or empresa.get("socios") or []
+        socio_principal = socios[0] if socios else {}
+
+        resultado = {
+            "razao_social": empresa.get("razao_social") or empresa.get("nome"),
+            "nome_fantasia": empresa.get("nome_fantasia"),
+            "cnpj": cnpj_numerico,
+            "nome_socio": socio_principal.get("nome"),
+            "cep": (endereco_principal or {}).get("cep"),
+            "endereco": (endereco_principal or {}).get("endereco") or (endereco_principal or {}).get("logradouro"),
+            "bairro": (endereco_principal or {}).get("bairro"),
+            "cidade": (endereco_principal or {}).get("cidade"),
+            "uf": (endereco_principal or {}).get("uf"),
+            "telefones": telefones,
+            "emails": emails,
+        }
+
+        return JsonResponse(resultado)
+    except requests.Timeout:
+        return JsonResponse({"erro": "Tempo de resposta excedido na Lemit"}, status=504)
+    except Exception as e:
+        return JsonResponse({"erro": f"Falha na integração com a Lemit (CNPJ): {str(e)}"}, status=500)
+
+
+@lojista_login_required
 def realizar_acordo(request, titulo_id):
     empresa_sessao_id = request.session.get('empresa_sessao_id')
     print(f"Tentando acessar o título com ID: {titulo_id}")
